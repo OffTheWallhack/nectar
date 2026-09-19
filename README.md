@@ -11,6 +11,10 @@ Live URL: **https://offthewallhack.github.io/nectar/**
 
 GitHub Pages nasadzuje tento repozitár z vetvy `main`, priečinok `/` (koreň).
 
+Ak adresa ešte vracia 404, v GitHub stačí jeden klik:
+
+**Settings → Pages → Build and deployment → Source: Deploy from a branch → Branch: `main` → Folder: `/ (root)` → Save**
+
 ## Ako otvoriť lokálne
 
 ### Možnosť A — priamo v prehliadači
