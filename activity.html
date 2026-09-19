@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Aktivita — Nectar</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell has-nav">
+    <header class="topbar">
+      <a href="feed.html" class="back-link" aria-label="Späť">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 18l-6-6 6-6"/></svg>
+        <span>Feed</span>
+      </a>
+      <span class="topbar-title">Aktivita</span>
+      <span style="width:48px"></span>
+    </header>
+
+    <div class="activity-list" id="activity-list"></div>
+    <nav class="bottom-nav" id="bottom-nav"></nav>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      var N = window.Nectar;
+      if (!N.requireAuth()) return;
+      N.renderBottomNav('feed');
+
+      var list = document.getElementById('activity-list');
+      list.innerHTML = N.DEFAULT_ACTIVITY.map(function (a) {
+        var person = N.findPerson(a.from);
+        if (!person) return '';
+        var href = a.type === 'message'
+          ? 'conversation.html?user=' + person.id
+          : 'feed.html';
+        var thumb = a.thumb
+          ? '<img class="activity-thumb" src="' + a.thumb + '" alt="" />'
+          : '';
+        return (
+          '<a class="activity-item" href="' + href + '">' +
+            '<img class="avatar" src="' + person.avatar + '" alt="" />' +
+            '<div class="activity-text">' +
+              '<div><strong>' + person.name.split(' ')[0] + '</strong> ' + a.text + '</div>' +
+              '<div class="activity-time">' + a.time + '</div>' +
+            '</div>' +
+            thumb +
+          '</a>'
+        );
+      }).join('');
+    })();
+  </script>
+</body>
+</html>

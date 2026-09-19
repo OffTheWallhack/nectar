@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Profil — Nectar</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell has-nav">
+    <header class="topbar">
+      <span class="topbar-title" id="top-title">Profil</span>
+      <div class="topbar-actions">
+        <a href="settings.html" class="icon-btn" id="settings-link" title="Nastavenia" aria-label="Nastavenia">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9c.3.6.9 1 1.6 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+        </a>
+      </div>
+    </header>
+
+    <div class="profile-header" id="profile-header"></div>
+    <div class="photo-grid" id="photo-grid"></div>
+
+    <nav class="bottom-nav" id="bottom-nav"></nav>
+  </div>
+
+  <!-- Edit modal -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal">
+      <h3>Upraviť profil</h3>
+      <div class="form-group">
+        <label for="edit-name">Meno</label>
+        <input class="form-input" id="edit-name" type="text" />
+      </div>
+      <div class="form-group">
+        <label for="edit-status">Status</label>
+        <input class="form-input" id="edit-status" type="text" maxlength="80" />
+      </div>
+      <div class="form-group">
+        <label for="edit-place">Pripnuté miesto</label>
+        <input class="form-input" id="edit-place" type="text" />
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="edit-cancel">Zrušiť</button>
+        <button type="button" class="btn btn-primary" id="edit-save">Uložiť</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      var N = window.Nectar;
+      if (!N.requireAuth()) return;
+
+      var params = new URLSearchParams(window.location.search);
+      var userId = params.get('user');
+      var isOwn = !userId || userId === 'me';
+
+      var person, profile;
+      if (isOwn) {
+        profile = N.getProfile();
+        person = {
+          id: 'me',
+          name: profile.name,
+          avatar: profile.avatar,
+          status: profile.status,
+          numericId: profile.numericId,
+          place: profile.place
+        };
+        N.renderBottomNav('profile');
+      } else {
+        person = N.findPerson(userId);
+        if (!person) {
+          document.getElementById('profile-header').innerHTML = '<p class="empty-state">Profil nenájdený.</p>';
+          N.renderBottomNav('profile');
+          return;
+        }
+        person.place = person.place || 'Bratislava';
+        document.getElementById('settings-link').classList.add('hidden');
+        N.renderBottomNav('feed');
+      }
+
+      document.title = person.name + ' — Nectar';
+      document.getElementById('top-title').textContent = person.name.split(' ')[0];
+
+      function renderHeader() {
+        var actions = isOwn
+          ? '<button type="button" class="btn btn-secondary btn-sm" id="btn-edit">Upraviť profil</button>' +
+            '<a href="friends.html" class="btn btn-secondary btn-sm">Priatelia</a>'
+          : '<a href="conversation.html?user=' + person.id + '" class="btn btn-primary btn-sm">Napísať</a>';
+
+        document.getElementById('profile-header').innerHTML =
+          '<div class="profile-avatar-wrap"><img class="avatar avatar-lg" src="' + person.avatar + '" alt="" /></div>' +
+          '<div class="profile-name">' + person.name + '</div>' +
+          '<div class="profile-id">#' + (person.numericId || '—') + '</div>' +
+          '<div class="profile-status">' + (person.status || '') + '</div>' +
+          '<div class="profile-actions">' + actions + '</div>' +
+          (isOwn
+            ? '<div class="profile-links"><a href="friends.html">Priatelia / kruhy</a><a href="settings.html">Nastavenia</a></div>'
+            : '') +
+          (person.place ? '<div class="pinned-place">📍 ' + person.place + '</div>' : '');
+
+        if (isOwn) {
+          document.getElementById('btn-edit').onclick = openEdit;
+        }
+      }
+
+      // Photo grid: own posts or person's posts / demo seeds
+      function renderGrid() {
+        var imgs = [];
+        if (isOwn) {
+          var mine = N.getPosts().filter(function (p) { return p.authorId === 'me' || p.isMine; });
+          mine.forEach(function (p) { imgs.push(p.image); });
+          // demo placeholders for own grid
+          while (imgs.length < 6) {
+            imgs.push('https://picsum.photos/seed/nectar-me-grid' + imgs.length + '/400');
+          }
+        } else {
+          var theirs = N.getPosts().filter(function (p) { return p.authorId === person.id; });
+          theirs.forEach(function (p) { imgs.push(p.image); });
+          while (imgs.length < 6) {
+            imgs.push('https://picsum.photos/seed/nectar-' + person.id + '-g' + imgs.length + '/400');
+          }
+        }
+        document.getElementById('photo-grid').innerHTML = imgs.slice(0, 9).map(function (src) {
+          return '<img src="' + src + '" alt="" loading="lazy" />';
+        }).join('');
+      }
+
+      function openEdit() {
+        var p = N.getProfile();
+        document.getElementById('edit-name').value = p.name;
+        document.getElementById('edit-status').value = p.status;
+        document.getElementById('edit-place').value = p.place || '';
+        document.getElementById('edit-modal').classList.add('open');
+      }
+
+      document.getElementById('edit-cancel').onclick = function () {
+        document.getElementById('edit-modal').classList.remove('open');
+      };
+      document.getElementById('edit-modal').addEventListener('click', function (e) {
+        if (e.target === this) this.classList.remove('open');
+      });
+      document.getElementById('edit-save').onclick = function () {
+        var p = N.getProfile();
+        p.name = document.getElementById('edit-name').value.trim() || p.name;
+        p.status = document.getElementById('edit-status').value.trim();
+        p.place = document.getElementById('edit-place').value.trim();
+        N.saveProfile(p);
+        var sess = N.getSession();
+        if (sess) { sess.name = p.name; N.setSession(sess); }
+        person.name = p.name;
+        person.status = p.status;
+        person.place = p.place;
+        document.getElementById('edit-modal').classList.remove('open');
+        renderHeader();
+        N.showToast('Profil uložený');
+      };
+
+      renderHeader();
+      renderGrid();
+    })();
+  </script>
+</body>
+</html>

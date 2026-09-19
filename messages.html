@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Správy — Nectar</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell has-nav">
+    <header class="topbar">
+      <span class="topbar-title">Správy</span>
+    </header>
+
+    <div class="search-bar">
+      <input type="search" placeholder="Hľadať správy…" id="msg-search" autocomplete="off" />
+    </div>
+
+    <div class="msg-list" id="msg-list"></div>
+    <nav class="bottom-nav" id="bottom-nav"></nav>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      var N = window.Nectar;
+      if (!N.requireAuth()) return;
+      N.renderBottomNav('messages');
+
+      function render(filter) {
+        var q = (filter || '').toLowerCase().trim();
+        var html = '';
+        N.PEOPLE.forEach(function (p) {
+          if (q && p.name.toLowerCase().indexOf(q) === -1) return;
+          var prev = N.MSG_PREVIEWS[p.id] || { last: '', time: '', unread: false };
+          html +=
+            '<a class="msg-item" href="conversation.html?user=' + p.id + '">' +
+              '<img class="avatar avatar-md" src="' + p.avatar + '" alt="" />' +
+              '<div class="msg-body">' +
+                '<div class="msg-top">' +
+                  '<span class="msg-name">' + p.name + '</span>' +
+                  '<span class="msg-time">' + prev.time + '</span>' +
+                '</div>' +
+                '<div class="msg-preview' + (prev.unread ? ' unread' : '') + '">' + prev.last + '</div>' +
+              '</div>' +
+              (prev.unread ? '<span class="unread-dot" aria-label="Neprečítané"></span>' : '') +
+            '</a>';
+        });
+        document.getElementById('msg-list').innerHTML = html || '<div class="empty-state">Žiadne konverzácie.</div>';
+      }
+
+      document.getElementById('msg-search').addEventListener('input', function (e) {
+        render(e.target.value);
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>

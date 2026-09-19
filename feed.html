@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Feed — Nectar</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell has-nav">
+    <header class="topbar">
+      <span class="topbar-logo">Nectar</span>
+      <div class="topbar-actions">
+        <a href="activity.html" class="icon-btn" title="Aktivita" aria-label="Aktivita">
+          <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+        </a>
+      </div>
+    </header>
+
+    <div class="filters" id="filters">
+      <button type="button" class="filter-chip active" data-circle="vsetci">Všetci</button>
+      <button type="button" class="filter-chip" data-circle="rodina">Rodina</button>
+      <button type="button" class="filter-chip" data-circle="priatelia">Priatelia</button>
+      <button type="button" class="filter-chip" data-circle="praca">Práca</button>
+    </div>
+
+    <div class="feed-list" id="feed-list"></div>
+    <nav class="bottom-nav" id="bottom-nav"></nav>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      var N = window.Nectar;
+      if (!N.requireAuth()) return;
+      N.renderBottomNav('feed');
+
+      var currentFilter = 'vsetci';
+      var likes = N.getLikes();
+
+      function render() {
+        var posts = N.getPosts().slice().sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
+        if (currentFilter !== 'vsetci') {
+          posts = posts.filter(function (p) { return p.circle === currentFilter; });
+        }
+        var list = document.getElementById('feed-list');
+        if (!posts.length) {
+          list.innerHTML = '<div class="empty-state">Zatiaľ žiadne príspevky v tomto kruhu.</div>';
+          return;
+        }
+        list.innerHTML = posts.map(function (post) {
+          var person = N.findPerson(post.authorId) || { name: 'Neznámy', avatar: '', id: post.authorId };
+          var liked = !!likes[post.id];
+          var likeCount = post.likes + (liked ? 1 : 0);
+          return (
+            '<article class="post-card" data-id="' + post.id + '">' +
+              '<div class="post-header">' +
+                '<a href="profile.html?user=' + person.id + '"><img class="avatar" src="' + person.avatar + '" alt="" /></a>' +
+                '<div class="post-meta">' +
+                  '<a class="post-author" href="profile.html?user=' + person.id + '">' + person.name + '</a>' +
+                  '<div class="post-time">' + post.time + '</div>' +
+                '</div>' +
+                '<span class="post-circle">' + N.circleLabel(post.circle) + '</span>' +
+              '</div>' +
+              '<img class="post-image" src="' + post.image + '" alt="" loading="lazy" />' +
+              '<div class="post-body">' +
+                '<div class="post-actions">' +
+                  '<button type="button" class="like-btn' + (liked ? ' liked' : '') + '" data-like="' + post.id + '" aria-label="Páči sa mi">' +
+                    N.ICONS.heart +
+                  '</button>' +
+                '</div>' +
+                '<div class="post-likes">' + likeCount + ' páči sa</div>' +
+                '<p class="post-caption"><span class="author">' + person.name.split(' ')[0] + '</span>' + escapeHtml(post.caption) + '</p>' +
+                '<a class="write-link" href="conversation.html?user=' + person.id + '">Napísať</a>' +
+              '</div>' +
+            '</article>'
+          );
+        }).join('');
+      }
+
+      function escapeHtml(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      }
+
+      document.getElementById('filters').addEventListener('click', function (e) {
+        var btn = e.target.closest('.filter-chip');
+        if (!btn) return;
+        document.querySelectorAll('.filter-chip').forEach(function (c) { c.classList.remove('active'); });
+        btn.classList.add('active');
+        currentFilter = btn.getAttribute('data-circle');
+        render();
+      });
+
+      document.getElementById('feed-list').addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-like]');
+        if (!btn) return;
+        var id = btn.getAttribute('data-like');
+        N.toggleLike(id);
+        likes = N.getLikes();
+        render();
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>

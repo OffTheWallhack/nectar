@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Nastavenia — Nectar</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell has-nav">
+    <header class="topbar">
+      <a href="profile.html" class="back-link" aria-label="Späť">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 18l-6-6 6-6"/></svg>
+      </a>
+      <span class="topbar-title">Nastavenia</span>
+      <span style="width:28px"></span>
+    </header>
+
+    <div class="settings-list">
+      <div class="settings-section">
+        <div class="settings-label">Účet</div>
+        <div class="settings-row">
+          <span>Meno</span>
+          <span class="settings-value" id="set-name">—</span>
+        </div>
+        <div class="settings-row">
+          <span>E-mail</span>
+          <span class="settings-value" id="set-email">—</span>
+        </div>
+        <div class="settings-row">
+          <span>ID</span>
+          <span class="settings-value" id="set-id">—</span>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Predplatné</div>
+        <div class="settings-row">
+          <span>Nectar</span>
+          <span><span class="badge-active">Aktívne</span></span>
+        </div>
+        <div class="settings-row">
+          <span>Cena</span>
+          <span class="settings-value">1 € / mesiac</span>
+        </div>
+        <div class="settings-row">
+          <span>Ďalšia platba</span>
+          <span class="settings-value">o 30 dní</span>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Súkromie</div>
+        <a class="settings-row" href="friends.html">
+          <span>Priatelia a kruhy</span>
+          <span class="settings-value">→</span>
+        </a>
+        <div class="settings-row">
+          <span>Kto môže písať</span>
+          <span class="settings-value">Priatelia</span>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <button type="button" class="settings-row danger" id="btn-logout">Odhlásiť sa</button>
+      </div>
+    </div>
+
+    <nav class="bottom-nav" id="bottom-nav"></nav>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      var N = window.Nectar;
+      if (!N.requireAuth()) return;
+      N.renderBottomNav('profile');
+
+      var session = N.getSession();
+      var profile = N.getProfile();
+      document.getElementById('set-name').textContent = profile.name || session.name;
+      document.getElementById('set-email').textContent = session.email || '—';
+      document.getElementById('set-id').textContent = '#' + profile.numericId;
+
+      document.getElementById('btn-logout').onclick = function () {
+        if (!confirm('Naozaj sa chceš odhlásiť?')) return;
+        N.clearSession();
+        window.location.href = 'index.html';
+      };
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Nový príspevok — Nectar</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell has-nav">
+    <header class="topbar">
+      <a href="feed.html" class="back-link" aria-label="Zrušiť">Zrušiť</a>
+      <span class="topbar-title">Nový príspevok</span>
+      <span style="width:48px"></span>
+    </header>
+
+    <div class="compose-steps">
+      <!-- Step 1: photo -->
+      <div class="compose-step active" id="step-1">
+        <p class="step-hint">1 / 3 — Vyber fotku</p>
+        <label class="photo-picker" id="photo-picker">
+          <input type="file" accept="image/*" id="photo-input" />
+          <span class="picker-hint">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <br />Klepni pre výber fotky<br />
+            <small style="opacity:0.7">alebo použi ukážkovú</small>
+          </span>
+          <img id="photo-preview" alt="" class="hidden" />
+        </label>
+        <button type="button" class="btn btn-secondary btn-block" id="btn-demo-photo">Použiť ukážkovú fotku</button>
+        <div class="step-actions">
+          <button type="button" class="btn btn-primary btn-block" id="to-step-2" disabled>Ďalej</button>
+        </div>
+      </div>
+
+      <!-- Step 2: text -->
+      <div class="compose-step" id="step-2">
+        <p class="step-hint">2 / 3 — Napíš text</p>
+        <div class="form-group">
+          <textarea class="form-input" id="caption" rows="4" placeholder="Čo sa deje?" maxlength="500"></textarea>
+        </div>
+        <div class="step-actions">
+          <button type="button" class="btn btn-secondary" id="back-step-1">Späť</button>
+          <button type="button" class="btn btn-primary" id="to-step-3" style="flex:1">Ďalej</button>
+        </div>
+      </div>
+
+      <!-- Step 3: audience -->
+      <div class="compose-step" id="step-3">
+        <p class="step-hint">3 / 3 — Komu zdieľať</p>
+        <div class="audience-options" id="audience">
+          <label class="audience-option selected">
+            <input type="radio" name="audience" value="priatelia" checked />
+            <span>Priatelia</span>
+          </label>
+          <label class="audience-option">
+            <input type="radio" name="audience" value="rodina" />
+            <span>Rodina</span>
+          </label>
+          <label class="audience-option">
+            <input type="radio" name="audience" value="praca" />
+            <span>Práca</span>
+          </label>
+          <label class="audience-option">
+            <input type="radio" name="audience" value="verejne" />
+            <span>Verejné</span>
+          </label>
+          <label class="audience-option">
+            <input type="radio" name="audience" value="sukromne" />
+            <span>Súkromné (len ja)</span>
+          </label>
+        </div>
+        <div class="step-actions">
+          <button type="button" class="btn btn-secondary" id="back-step-2">Späť</button>
+          <button type="button" class="btn btn-primary" id="btn-share" style="flex:1">Zdieľať</button>
+        </div>
+      </div>
+    </div>
+
+    <nav class="bottom-nav" id="bottom-nav"></nav>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      var N = window.Nectar;
+      if (!N.requireAuth()) return;
+      N.renderBottomNav('compose');
+
+      var photoData = null;
+      var demoSeed = 'nectar-user-' + Date.now();
+
+      function showStep(n) {
+        document.querySelectorAll('.compose-step').forEach(function (s) { s.classList.remove('active'); });
+        document.getElementById('step-' + n).classList.add('active');
+      }
+
+      var picker = document.getElementById('photo-picker');
+      var preview = document.getElementById('photo-preview');
+      var to2 = document.getElementById('to-step-2');
+
+      function setPhoto(url) {
+        photoData = url;
+        preview.src = url;
+        preview.classList.remove('hidden');
+        picker.classList.add('has-image');
+        to2.disabled = false;
+      }
+
+      document.getElementById('photo-input').addEventListener('change', function (e) {
+        var file = e.target.files && e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function () { setPhoto(reader.result); };
+        reader.readAsDataURL(file);
+      });
+
+      document.getElementById('btn-demo-photo').onclick = function () {
+        setPhoto('https://picsum.photos/seed/' + demoSeed + '/800');
+      };
+
+      to2.onclick = function () { if (photoData) showStep(2); };
+      document.getElementById('back-step-1').onclick = function () { showStep(1); };
+      document.getElementById('to-step-3').onclick = function () { showStep(3); };
+      document.getElementById('back-step-2').onclick = function () { showStep(2); };
+
+      document.getElementById('audience').addEventListener('change', function (e) {
+        document.querySelectorAll('.audience-option').forEach(function (o) { o.classList.remove('selected'); });
+        e.target.closest('.audience-option').classList.add('selected');
+      });
+
+      document.getElementById('btn-share').onclick = function () {
+        var caption = document.getElementById('caption').value.trim() || 'Nový príspevok';
+        var audience = (document.querySelector('input[name="audience"]:checked') || {}).value || 'priatelia';
+        var circle = audience === 'verejne' || audience === 'sukromne' ? 'priatelia' : audience;
+        var posts = N.getPosts();
+        var session = N.getSession();
+        posts.unshift({
+          id: 'p-local-' + Date.now(),
+          authorId: 'me',
+          authorName: session.name,
+          image: photoData,
+          caption: caption,
+          circle: circle,
+          time: 'teraz',
+          likes: 0,
+          ts: Date.now(),
+          isMine: true
+        });
+        // Inject "me" into findPerson path via temporary PEOPLE-like handling in feed
+        N.savePosts(posts);
+        // Stash me as a pseudo person for feed rendering
+        try {
+          var extra = JSON.parse(localStorage.getItem('nectar_me_person') || 'null') || {};
+          extra = {
+            id: 'me',
+            name: session.name || 'Ty',
+            avatar: N.getProfile().avatar,
+            circle: circle
+          };
+          localStorage.setItem('nectar_me_person', JSON.stringify(extra));
+        } catch (err) {}
+        N.showToast('Príspevok zdieľaný');
+        setTimeout(function () { window.location.href = 'feed.html'; }, 350);
+      };
+    })();
+  </script>
+</body>
+</html>

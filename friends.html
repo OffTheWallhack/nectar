@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Priatelia — Nectar</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell has-nav">
+    <header class="topbar">
+      <a href="profile.html" class="back-link" aria-label="Späť">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 18l-6-6 6-6"/></svg>
+      </a>
+      <span class="topbar-title">Priatelia</span>
+      <span style="width:28px"></span>
+    </header>
+
+    <div class="invite-bar">
+      <button type="button" class="btn btn-primary btn-block" id="btn-invite">Pozvať priateľa</button>
+    </div>
+
+    <div class="filters" id="filters">
+      <button type="button" class="filter-chip active" data-circle="vsetci">Všetci</button>
+      <button type="button" class="filter-chip" data-circle="rodina">Rodina</button>
+      <button type="button" class="filter-chip" data-circle="priatelia">Priatelia</button>
+      <button type="button" class="filter-chip" data-circle="praca">Práca</button>
+    </div>
+
+    <div class="friends-list" id="friends-list"></div>
+    <nav class="bottom-nav" id="bottom-nav"></nav>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      var N = window.Nectar;
+      if (!N.requireAuth()) return;
+      N.renderBottomNav('profile');
+
+      var filter = 'vsetci';
+
+      function render() {
+        var people = N.PEOPLE.slice();
+        if (filter !== 'vsetci') {
+          people = people.filter(function (p) { return p.circle === filter; });
+        }
+        document.getElementById('friends-list').innerHTML = people.map(function (p) {
+          return (
+            '<div class="friend-item">' +
+              '<a href="profile.html?user=' + p.id + '"><img class="avatar avatar-md" src="' + p.avatar + '" alt="" /></a>' +
+              '<div class="friend-info">' +
+                '<a class="friend-name" href="profile.html?user=' + p.id + '">' + p.name + '</a>' +
+                '<div><span class="circle-tag ' + p.circle + '">' + N.circleLabel(p.circle) + '</span></div>' +
+              '</div>' +
+              '<a href="conversation.html?user=' + p.id + '" class="btn btn-ghost btn-sm">Napísať</a>' +
+            '</div>'
+          );
+        }).join('') || '<div class="empty-state">Nikto v tomto kruhu.</div>';
+      }
+
+      document.getElementById('filters').addEventListener('click', function (e) {
+        var btn = e.target.closest('.filter-chip');
+        if (!btn) return;
+        document.querySelectorAll('.filter-chip').forEach(function (c) { c.classList.remove('active'); });
+        btn.classList.add('active');
+        filter = btn.getAttribute('data-circle');
+        render();
+      });
+
+      document.getElementById('btn-invite').onclick = function () {
+        var link = 'https://nectar.app/invite/demo-' + Math.random().toString(36).slice(2, 8);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(link).then(function () {
+            N.showToast('Pozvánka skopírovaná');
+          }).catch(function () {
+            N.showToast(link);
+          });
+        } else {
+          N.showToast(link);
+        }
+      };
+
+      render();
+    })();
+  </script>
+</body>
+</html>
