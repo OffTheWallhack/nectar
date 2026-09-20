@@ -759,6 +759,7 @@ body.own-profile {
   letter-spacing: 0.01em;
   line-height: 1.2;
   -webkit-tap-highlight-color: transparent;
+  -webkit-user-drag: none;
 }
 
 .qr-pull-hint:active { cursor: grabbing; }

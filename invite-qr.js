@@ -35,13 +35,12 @@
     var tokenUntil = 0;
     var tickTimer = 0;
     var didRevealAnim = false;
-    var tracking = false;
     var moved = false;
     var lockedScroll = false;
     var prevOverflow = '';
     var wheelTimer = 0;
-    var lastTouchAt = 0;
-    var handledMouse = false;
+    var activePointer = null;
+    var pendingPointer = null;
 
     function measure() {
       REST_H = hint.offsetHeight || 48;
@@ -317,80 +316,68 @@
       }
     }
 
+    function finishPointer(e) {
+      if (pendingPointer && e.pointerId === pendingPointer.id && !pulling) {
+        pendingPointer = null;
+        activePointer = null;
+        return;
+      }
+      if (activePointer !== null && e.pointerId !== activePointer) return;
+      pendingPointer = null;
+      activePointer = null;
+      if (!pulling) return;
+      if (moved) {
+        endPull();
+      } else {
+        pulling = false;
+        panel.classList.remove('is-pulling');
+        unlockScroll();
+        toggleLatch();
+      }
+    }
+
     measure();
     setHeight(REST_H);
 
-    shell.addEventListener('touchstart', function (e) {
-      if (e.touches.length !== 1) return;
-      lastTouchAt = Date.now();
-      tracking = atTop() || height > REST_H + 1;
-      if (!tracking) return;
-      startY = e.touches[0].clientY;
-      startH = height;
-      lastY = startY;
-      lastT = performance.now();
-      pulling = false;
-      moved = false;
-    }, { passive: true });
+    shell.addEventListener('pointerdown', function (e) {
+      if (activePointer !== null || pendingPointer) return;
+      var onStrip = !!(e.target.closest && e.target.closest('#qr-invite'));
+      var mouseLike = e.pointerType === 'mouse' || e.pointerType === 'pen';
+      if (mouseLike && e.button !== 0) return;
+      if (mouseLike && !onStrip) return;
+      if (!mouseLike && !onStrip && !atTop() && height <= REST_H + 1) return;
 
-    shell.addEventListener('touchmove', function (e) {
-      if (!tracking && height <= REST_H) return;
-      var y = e.touches[0].clientY;
-      var dy = y - startY;
-      if (!pulling) {
-        if (atTop() && dy > 6) {
-          beginPull(startY);
-        } else if (height > REST_H + 1 && dy < -6) {
-          beginPull(startY);
-        } else {
-          return;
-        }
-      }
-      if (pulling) {
+      pendingPointer = { id: e.pointerId, y: e.clientY, onStrip: onStrip };
+      if (onStrip) {
+        activePointer = e.pointerId;
+        beginPull(e.clientY);
+        try { hint.setPointerCapture(e.pointerId); } catch (err) {}
         if (e.cancelable) e.preventDefault();
-        movePull(y);
       }
-    }, { passive: false });
-
-    function touchDone() {
-      lastTouchAt = Date.now();
-      tracking = false;
-      endPull();
-    }
-    shell.addEventListener('touchend', touchDone, { passive: true });
-    shell.addEventListener('touchcancel', touchDone, { passive: true });
-
-    hint.addEventListener('mousedown', function (e) {
-      if (e.button !== 0) return;
-      if (Date.now() - lastTouchAt < 700) return;
-      e.preventDefault();
-      handledMouse = true;
-      beginPull(e.clientY);
-      function mm(ev) { movePull(ev.clientY); }
-      function mu() {
-        window.removeEventListener('mousemove', mm);
-        window.removeEventListener('mouseup', mu);
-        if (moved) {
-          endPull();
-        } else {
-          pulling = false;
-          panel.classList.remove('is-pulling');
-          unlockScroll();
-          toggleLatch();
-        }
-      }
-      window.addEventListener('mousemove', mm);
-      window.addEventListener('mouseup', mu);
     });
 
-    hint.addEventListener('click', function (e) {
-      e.preventDefault();
-      if (handledMouse) {
-        handledMouse = false;
+    window.addEventListener('pointermove', function (e) {
+      if (pendingPointer && e.pointerId === pendingPointer.id && !pulling) {
+        var dy = e.clientY - pendingPointer.y;
+        if ((atTop() && dy > 8) || (height > REST_H + 1 && dy < -8)) {
+          activePointer = e.pointerId;
+          beginPull(pendingPointer.y);
+          movePull(e.clientY);
+          if (e.cancelable) e.preventDefault();
+        }
         return;
       }
-      if (moved) return;
-      toggleLatch();
+      if (!pulling || e.pointerId !== activePointer) return;
+      if (e.cancelable) e.preventDefault();
+      movePull(e.clientY);
+    }, { passive: false });
+
+    window.addEventListener('pointerup', finishPointer);
+    window.addEventListener('pointercancel', finishPointer);
+
+    window.addEventListener('mousemove', function (e) {
+      if (!pulling) return;
+      movePull(e.clientY);
     });
 
     hint.addEventListener('keydown', function (e) {
