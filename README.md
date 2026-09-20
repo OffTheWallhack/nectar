@@ -54,6 +54,12 @@ Alebo **Vytvoriť účet** → mock platba → vstup do aplikácie.
 
 Stav (session, lajky, nové príspevky, správy) sa ukladá do `localStorage` prehliadača.
 
+## Pozvánka QR (vlastný profil)
+
+Na **vlastnom** profile potiahni obrazovku dole (overscroll) — spodok hornej lišty sa rozvinie a ukáže dočasný QR kód na pozvanie priateľa. Kód platí **2 minúty** a pri každom potiahnutí vznikne nový token. Keď pustíš, panel sa pružne schová.
+
+Na desktope potiahni za úchytku pod lištou („Potiahni dole pre QR“) alebo na ňu klepni. Na cudzích profiloch sa gesto nezobrazuje.
+
 ## Dizajn
 
 Inšpirácia: starý Instagram + starý Twitter (cca 2005–2015). Mobil-first, max-width ~420 px.

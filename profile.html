@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="app-shell has-nav">
+  <div class="app-shell has-nav" id="app-shell">
     <header class="topbar">
       <span class="topbar-title" id="top-title">Profil</span>
       <div class="topbar-actions">
@@ -16,6 +16,25 @@
         </a>
       </div>
     </header>
+
+    <div class="qr-invite hidden" id="qr-invite" aria-hidden="true" role="region" aria-label="Dočasná pozvánka QR">
+      <button type="button" class="qr-pull-hint" id="qr-pull-hint" aria-expanded="false" aria-controls="qr-invite-body">
+        <span class="qr-pull-handle" aria-hidden="true"></span>
+        <span class="qr-pull-hint-text">Potiahni dole pre QR</span>
+      </button>
+      <div class="qr-invite-body" id="qr-invite-body">
+        <div class="qr-invite-card" id="qr-invite-card">
+          <div class="qr-canvas-wrap">
+            <canvas id="qr-canvas" width="156" height="156" aria-hidden="true"></canvas>
+          </div>
+          <div class="qr-invite-kicker">Pozvi priateľa</div>
+          <div class="qr-invite-ttl" id="qr-ttl">Platné 2 min</div>
+          <div class="qr-invite-token" id="qr-token">···· · ····</div>
+        </div>
+        <p class="qr-invite-note">Jednorazový kód pre toto stretnutie</p>
+        <button type="button" class="qr-invite-close" id="qr-invite-close">Zavrieť</button>
+      </div>
+    </div>
 
     <div class="profile-header" id="profile-header"></div>
     <div class="photo-grid" id="photo-grid"></div>
@@ -46,7 +65,9 @@
     </div>
   </div>
 
+  <script src="vendor/qrcode.js"></script>
   <script src="app.js"></script>
+  <script src="invite-qr.js"></script>
   <script>
     (function () {
       var N = window.Nectar;
@@ -55,6 +76,13 @@
       var params = new URLSearchParams(window.location.search);
       var userId = params.get('user');
       var isOwn = !userId || userId === 'me';
+
+      if (isOwn) {
+        var qrPanel = document.getElementById('qr-invite');
+        qrPanel.classList.remove('hidden');
+        qrPanel.setAttribute('aria-hidden', 'false');
+        if (window.NectarInviteQr) window.NectarInviteQr.init();
+      }
 
       var person, profile;
       if (isOwn) {
