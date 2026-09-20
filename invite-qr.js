@@ -13,7 +13,6 @@
     var canvas = document.getElementById('qr-canvas');
     var ttlEl = document.getElementById('qr-ttl');
     var tokenEl = document.getElementById('qr-token');
-    var closeBtn = document.getElementById('qr-invite-close');
     if (!shell || !panel || !hint || typeof qrcode !== 'function') return;
 
     document.documentElement.classList.add('own-profile');
@@ -125,7 +124,7 @@
       qr.make();
       var n = qr.getModuleCount();
       var dpr = Math.min(2.5, window.devicePixelRatio || 1);
-      var css = 156;
+      var css = 148;
       canvas.width = Math.round(css * dpr);
       canvas.height = Math.round(css * dpr);
       canvas.style.width = css + 'px';
@@ -400,15 +399,6 @@
         toggleLatch();
       }
     });
-
-    if (closeBtn) {
-      closeBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        latched = false;
-        panel.classList.remove('is-latched');
-        springTo(REST_H, 0);
-      });
-    }
 
     shell.addEventListener('wheel', function (e) {
       var goingDown = e.deltaY < 0;

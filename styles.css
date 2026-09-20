@@ -754,8 +754,8 @@ body.own-profile {
   background: none;
   border: none;
   cursor: grab;
-  color: var(--text-muted);
-  font-size: 0.72rem;
+  color: #737373;
+  font-size: 0.75rem;
   letter-spacing: 0.01em;
   line-height: 1.2;
   -webkit-tap-highlight-color: transparent;
@@ -809,8 +809,8 @@ body.own-profile {
 }
 
 .qr-invite-card canvas {
-  width: 156px;
-  height: 156px;
+  width: 148px;
+  height: 148px;
   border-radius: 4px;
   display: block;
 }
@@ -847,20 +847,6 @@ body.own-profile {
   color: var(--text-soft);
   text-align: center;
 }
-
-.qr-invite-close {
-  display: none;
-  margin: 8px auto 0;
-  background: none;
-  border: none;
-  color: var(--accent);
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 4px 8px;
-}
-
-.qr-invite.is-latched .qr-invite-close { display: inline-block; }
 
 .qr-invite-card.expired {
   filter: grayscale(0.35);
