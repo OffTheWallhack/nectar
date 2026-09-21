@@ -3,28 +3,47 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="color-scheme" content="light" />
-  <meta name="theme-color" content="#f3eadc" />
+  <meta name="theme-color" content="#f4ebdd" />
+  <meta name="description" content="Nectar — pokojná platená sociálna sieť. Bez reklám, bez algoritmu." />
   <title>Nectar — Pokojný priestor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="styles.css" />
+  <script src="boot.js"></script>
 </head>
 <body>
   <div class="app-shell">
+    <!-- Home -->
     <div class="landing" id="landing-home">
       <div class="landing-logo">Nectar</div>
-      <p class="landing-tagline">Pokojný priestor na rozhovory a fotky. Bez reklám. Bez algoritmu.</p>
-      <p class="landing-price"><strong>1 €</strong> / mesiac</p>
+      <p class="landing-tagline">Pokojný priestor na rozhovory a fotky.<br />Bez reklám. Bez algoritmu.</p>
+
+      <div class="landing-promises">
+        <div class="landing-promise">
+          <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+          <span>Chronologicky — nič ti nikto nepreradí</span>
+        </div>
+        <div class="landing-promise">
+          <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+          <span>Žiadne reklamy, žiadny platený dosah</span>
+        </div>
+        <div class="landing-promise">
+          <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+          <span>Malé kruhy — rodina, priatelia, práca</span>
+        </div>
+      </div>
+
+      <p class="landing-price"><strong>1 €</strong> / mesiac · zrušiteľné kedykoľvek</p>
+
       <div class="landing-actions">
-        <button type="button" class="btn btn-primary btn-block" id="btn-create">Vytvoriť účet</button>
+        <button type="button" class="btn btn-primary btn-lg btn-block" id="btn-create">Vytvoriť účet</button>
         <button type="button" class="btn btn-secondary btn-block" id="btn-login">Prihlásiť sa</button>
       </div>
     </div>
 
     <!-- Create account -->
     <div class="landing landing-panel" id="panel-create">
-      <div class="landing-logo" style="font-size:1.8rem;margin-bottom:8px;">Nectar</div>
+      <div class="landing-logo">Nectar</div>
       <h2>Vytvoriť účet</h2>
       <form id="form-create">
         <div class="form-group">
@@ -46,7 +65,7 @@
 
     <!-- Login -->
     <div class="landing landing-panel" id="panel-login">
-      <div class="landing-logo" style="font-size:1.8rem;margin-bottom:8px;">Nectar</div>
+      <div class="landing-logo">Nectar</div>
       <h2>Prihlásiť sa</h2>
       <form id="form-login">
         <div class="form-group">
@@ -64,19 +83,20 @@
 
     <!-- Paywall -->
     <div class="landing landing-panel" id="panel-pay">
-      <div class="landing-logo" style="font-size:1.8rem;margin-bottom:8px;">Nectar</div>
+      <div class="landing-logo">Nectar</div>
       <h2>Predplatné</h2>
       <div class="paywall-box">
-        <p>Plný prístup bez reklám</p>
+        <div class="eyebrow">Plný prístup</div>
         <div class="price-big">1 €</div>
         <p class="price-note">mesačne · zrušiteľné kedykoľvek</p>
         <div class="mock-card">
-          <strong style="color:var(--text);">Mock platba</strong><br />
-          Karta: •••• 4242<br />
-          Platnosť: 12/28 · CVC: •••
+          Mock platba<br />
+          Karta &nbsp;•••• 4242<br />
+          Platnosť &nbsp;12/28 &nbsp;· &nbsp;CVC &nbsp;•••
         </div>
       </div>
-      <button type="button" class="btn btn-primary btn-block" id="btn-pay">Zaplatiť 1 € a vstúpiť</button>
+      <p class="step-hint center">Poplatok drží preč bot farmy. Nekupuje sa ním dosah.</p>
+      <button type="button" class="btn btn-primary btn-lg btn-block" id="btn-pay">Zaplatiť 1 € a vstúpiť</button>
       <button type="button" class="btn btn-ghost btn-block" id="back-from-pay">Späť</button>
     </div>
   </div>
@@ -87,27 +107,21 @@
       var N = window.Nectar;
       var pending = null;
 
-      // Already logged in + paid → feed
       var s = N.getSession();
-      if (s && s.paid) {
-        window.location.href = 'feed.html';
-        return;
-      }
+      if (s && s.paid) { window.location.href = 'feed.html'; return; }
+
+      var home = document.getElementById('landing-home');
 
       function show(id) {
-        document.querySelectorAll('.landing').forEach(function (el) {
+        document.querySelectorAll('.landing-panel').forEach(function (el) {
           el.classList.remove('active');
-          if (el.id !== 'landing-home') el.style.display = 'none';
         });
-        var home = document.getElementById('landing-home');
         if (id === 'landing-home') {
-          home.style.display = 'flex';
+          home.style.display = '';
           return;
         }
         home.style.display = 'none';
-        var panel = document.getElementById(id);
-        panel.style.display = 'flex';
-        panel.classList.add('active');
+        document.getElementById(id).classList.add('active');
       }
 
       document.getElementById('btn-create').onclick = function () { show('panel-create'); };
@@ -120,18 +134,16 @@
         e.preventDefault();
         pending = {
           name: document.getElementById('create-name').value.trim(),
-          email: document.getElementById('create-email').value.trim(),
-          paid: false
+          email: document.getElementById('create-email').value.trim()
         };
         show('panel-pay');
       };
 
       document.getElementById('form-login').onsubmit = function (e) {
         e.preventDefault();
-        var email = document.getElementById('login-email').value.trim();
         N.setSession({
           name: 'Demo používateľ',
-          email: email,
+          email: document.getElementById('login-email').value.trim(),
           paid: true,
           loggedInAt: Date.now()
         });
@@ -140,14 +152,9 @@
 
       document.getElementById('btn-pay').onclick = function () {
         var data = pending || { name: 'Nový používateľ', email: 'novy@nectar.sk' };
-        N.setSession({
-          name: data.name,
-          email: data.email,
-          paid: true,
-          loggedInAt: Date.now()
-        });
-        N.showToast('Vitaj v Nectare!');
-        setTimeout(function () { window.location.href = 'feed.html'; }, 400);
+        N.setSession({ name: data.name, email: data.email, paid: true, loggedInAt: Date.now() });
+        N.showToast('Vitaj v Nectare', '🐝');
+        setTimeout(function () { window.location.href = 'feed.html'; }, 500);
       };
     })();
   </script>

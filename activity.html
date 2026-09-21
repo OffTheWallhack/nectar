@@ -3,25 +3,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="color-scheme" content="light" />
-  <meta name="theme-color" content="#f3eadc" />
+  <meta name="theme-color" content="#f4ebdd" />
   <title>Aktivita — Nectar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="styles.css" />
+  <script src="boot.js"></script>
 </head>
 <body>
   <div class="app-shell has-nav">
     <header class="topbar">
-      <a href="feed.html" class="back-link" aria-label="Späť">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 18l-6-6 6-6"/></svg>
+      <a href="feed.html" class="back-link" aria-label="Späť na feed">
+        <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
         <span>Feed</span>
       </a>
       <span class="topbar-title">Aktivita</span>
-      <span style="width:48px"></span>
+      <span class="topbar-spacer"></span>
     </header>
 
-    <div class="activity-list" id="activity-list"></div>
+    <div id="activity-groups"></div>
     <nav class="bottom-nav" id="bottom-nav"></nav>
   </div>
 
@@ -32,27 +32,50 @@
       if (!N.requireAuth()) return;
       N.renderBottomNav('feed');
 
-      var list = document.getElementById('activity-list');
-      list.innerHTML = N.DEFAULT_ACTIVITY.map(function (a) {
-        var person = N.findPerson(a.from);
-        if (!person) return '';
-        var href = a.type === 'message'
-          ? 'conversation.html?user=' + person.id
-          : 'feed.html';
-        var thumb = a.thumb
-          ? '<img class="activity-thumb" src="' + a.thumb + '" alt="" />'
-          : '';
-        return (
-          '<a class="activity-item" href="' + href + '">' +
-            '<img class="avatar" src="' + person.avatar + '" alt="" />' +
+      var ICON = {
+        like: '<svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z"/></svg>',
+        message: '<svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 01-8.5 8.5 8.4 8.4 0 01-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 01-.9-3.8A8.5 8.5 0 0121 11.5z"/></svg>',
+        badge: '<span aria-hidden="true">🏅</span>',
+        space: '<span aria-hidden="true">🏠</span>'
+      };
+
+      function href(a, person) {
+        if (a.type === 'message') return 'conversation.html?user=' + person.id;
+        if (a.type === 'space') return 'spaces.html';
+        if (a.type === 'badge') return 'profile.html?user=' + person.id;
+        return 'feed.html';
+      }
+
+      /* Grouped by day so the list reads as a diary, not a slot machine. */
+      var groups = [];
+      N.DEFAULT_ACTIVITY.forEach(function (a) {
+        var label = N.dayLabel(a.ts);
+        var g = groups[groups.length - 1];
+        if (!g || g.label !== label) { g = { label: label, items: [] }; groups.push(g); }
+        g.items.push(a);
+      });
+
+      document.getElementById('activity-groups').innerHTML = groups.map(function (g) {
+        var rows = g.items.map(function (a) {
+          var person = N.findPerson(a.from);
+          if (!person) return '';
+          return '<a class="activity-item" href="' + href(a, person) + '">' +
+            '<span class="msg-avatar-wrap">' +
+              '<img class="avatar" src="' + person.avatar + '" alt="" />' +
+              '<span class="activity-icon ' + a.type + '">' + (ICON[a.type] || '') + '</span>' +
+            '</span>' +
             '<div class="activity-text">' +
-              '<div><strong>' + person.name.split(' ')[0] + '</strong> ' + a.text + '</div>' +
-              '<div class="activity-time">' + a.time + '</div>' +
+              '<div><strong>' + N.escapeHtml(N.firstName(person.name)) + '</strong> ' + N.escapeHtml(a.text) + '</div>' +
+              '<div class="activity-time">' + N.relTime(a.ts) + '</div>' +
             '</div>' +
-            thumb +
-          '</a>'
-        );
-      }).join('');
+            (a.thumb ? '<img class="activity-thumb" src="' + a.thumb + '" alt="" loading="lazy" />' : '') +
+          '</a>';
+        }).join('');
+
+        return '<div class="settings-label">' + g.label + '</div>' +
+               '<div class="activity-list">' + rows + '</div>';
+      }).join('') ||
+        '<div class="empty-state">' + N.ICONS.bell + '<p>Zatiaľ ticho. A to je v poriadku.</p></div>';
     })();
   </script>
 </body>

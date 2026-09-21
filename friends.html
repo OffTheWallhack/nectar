@@ -3,25 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="color-scheme" content="light" />
-  <meta name="theme-color" content="#f3eadc" />
+  <meta name="theme-color" content="#f4ebdd" />
   <title>Priatelia — Nectar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="styles.css" />
+  <script src="boot.js"></script>
 </head>
 <body>
   <div class="app-shell has-nav">
     <header class="topbar">
-      <a href="profile.html" class="back-link" aria-label="Späť">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 18l-6-6 6-6"/></svg>
+      <a href="profile.html" class="back-link" aria-label="Späť na profil">
+        <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
       </a>
       <span class="topbar-title">Priatelia</span>
-      <span style="width:28px"></span>
+      <span class="topbar-spacer"></span>
     </header>
 
     <div class="invite-bar">
       <button type="button" class="btn btn-primary btn-block" id="btn-invite">Pozvať priateľa</button>
+      <p class="step-hint center" style="margin:10px 0 0">
+        Alebo potiahni dole na vlastnom profile a ukáž jednorazový QR kód.
+      </p>
     </div>
 
     <div class="filters" id="filters">
@@ -31,7 +34,7 @@
       <button type="button" class="filter-chip" data-circle="praca">Práca</button>
     </div>
 
-    <div class="friends-list" id="friends-list"></div>
+    <div class="friends-list stagger" id="friends-list"></div>
     <nav class="bottom-nav" id="bottom-nav"></nav>
   </div>
 
@@ -44,23 +47,42 @@
 
       var filter = 'vsetci';
 
+      /* Counts live on the chips so the circles feel like real, sized groups. */
+      function updateCounts() {
+        document.querySelectorAll('.filter-chip').forEach(function (chip) {
+          var c = chip.getAttribute('data-circle');
+          var n = c === 'vsetci'
+            ? N.PEOPLE.length
+            : N.PEOPLE.filter(function (p) { return (p.circles || [p.circle]).indexOf(c) !== -1; }).length;
+          chip.textContent = N.circleLabel(c) + ' · ' + n;
+        });
+      }
+
       function render() {
         var people = N.PEOPLE.slice();
         if (filter !== 'vsetci') {
-          people = people.filter(function (p) { return p.circle === filter; });
+          people = people.filter(function (p) {
+            return (p.circles || [p.circle]).indexOf(filter) !== -1;
+          });
         }
+
         document.getElementById('friends-list').innerHTML = people.map(function (p) {
-          return (
-            '<div class="friend-item">' +
-              '<a href="profile.html?user=' + p.id + '"><img class="avatar avatar-md" src="' + p.avatar + '" alt="" /></a>' +
-              '<div class="friend-info">' +
-                '<a class="friend-name" href="profile.html?user=' + p.id + '">' + p.name + '</a>' +
-                '<div><span class="circle-tag ' + p.circle + '">' + N.circleLabel(p.circle) + '</span></div>' +
-              '</div>' +
-              '<a href="conversation.html?user=' + p.id + '" class="btn btn-ghost btn-sm">Napísať</a>' +
-            '</div>'
-          );
-        }).join('') || '<div class="empty-state">Nikto v tomto kruhu.</div>';
+          var tags = (p.circles || [p.circle]).map(function (c) {
+            return '<span class="circle-tag ' + c + '">' + N.circleLabel(c) + '</span>';
+          }).join('');
+
+          return '<div class="friend-item">' +
+            '<a href="profile.html?user=' + p.id + '"><img class="avatar avatar-md" src="' + p.avatar + '" alt="" /></a>' +
+            '<div class="friend-info">' +
+              '<a class="friend-name" href="profile.html?user=' + p.id + '">' +
+                N.escapeHtml(p.name) + N.badgeChip(p) +
+              '</a>' +
+              '<div class="friend-status">' + N.escapeHtml(p.status) + '</div>' +
+              '<div class="tag-row">' + tags + '</div>' +
+            '</div>' +
+            '<a href="conversation.html?user=' + p.id + '" class="btn btn-ghost btn-sm">Napísať</a>' +
+          '</div>';
+        }).join('') || '<div class="empty-state">' + N.ICONS.users + '<p>V tomto kruhu zatiaľ nikto nie je.</p></div>';
       }
 
       document.getElementById('filters').addEventListener('click', function (e) {
@@ -75,16 +97,15 @@
       document.getElementById('btn-invite').onclick = function () {
         var link = 'https://nectar.app/invite/demo-' + Math.random().toString(36).slice(2, 8);
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(link).then(function () {
-            N.showToast('Pozvánka skopírovaná');
-          }).catch(function () {
-            N.showToast(link);
-          });
+          navigator.clipboard.writeText(link)
+            .then(function () { N.showToast('Pozvánka skopírovaná', '✓'); })
+            .catch(function () { N.showToast(link); });
         } else {
           N.showToast(link);
         }
       };
 
+      updateCounts();
       render();
     })();
   </script>

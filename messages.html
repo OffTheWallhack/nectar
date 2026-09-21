@@ -3,24 +3,32 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="color-scheme" content="light" />
-  <meta name="theme-color" content="#f3eadc" />
+  <meta name="theme-color" content="#f4ebdd" />
   <title>Správy — Nectar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="styles.css" />
+  <script src="boot.js"></script>
 </head>
 <body>
   <div class="app-shell has-nav">
     <header class="topbar">
       <span class="topbar-title">Správy</span>
+      <div class="topbar-actions">
+        <a href="friends.html" class="icon-btn" title="Priatelia" aria-label="Priatelia">
+          <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3.1-6 7-6s7 2.5 7 6"/><path d="M17 5.2a3.5 3.5 0 010 6.6M19 20c0-2.6-1-4.6-2.6-5.6"/></svg>
+        </a>
+      </div>
     </header>
 
     <div class="search-bar">
-      <input type="search" placeholder="Hľadať správy…" id="msg-search" autocomplete="off" />
+      <label class="search-field">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input type="search" placeholder="Hľadať v správach…" id="msg-search" autocomplete="off" aria-label="Hľadať v správach" />
+      </label>
     </div>
 
-    <div class="msg-list" id="msg-list"></div>
+    <div class="msg-list stagger" id="msg-list"></div>
     <nav class="bottom-nav" id="bottom-nav"></nav>
   </div>
 
@@ -31,26 +39,47 @@
       if (!N.requireAuth()) return;
       N.renderBottomNav('messages');
 
+      var list = document.getElementById('msg-list');
+
       function render(filter) {
         var q = (filter || '').toLowerCase().trim();
-        var html = '';
-        N.PEOPLE.forEach(function (p) {
-          if (q && p.name.toLowerCase().indexOf(q) === -1) return;
-          var prev = N.MSG_PREVIEWS[p.id] || { last: '', time: '', unread: false };
-          html +=
-            '<a class="msg-item" href="conversation.html?user=' + p.id + '">' +
+
+        /* Newest conversation first — same chronological rule as the feed. */
+        var rows = N.PEOPLE.map(function (p) {
+          return { person: p, last: N.lastMessage(p.id) };
+        }).filter(function (r) {
+          if (!r.last) return false;
+          if (!q) return true;
+          return r.person.name.toLowerCase().indexOf(q) !== -1 ||
+                 r.last.text.toLowerCase().indexOf(q) !== -1;
+        }).sort(function (a, b) { return b.last.ts - a.last.ts; });
+
+        if (!rows.length) {
+          list.innerHTML = '<div class="empty-state">' + N.ICONS.messages + '<p>Nič sa nenašlo.</p></div>';
+          return;
+        }
+
+        list.innerHTML = rows.map(function (r) {
+          var p = r.person;
+          var unread = N.isUnread(p.id);
+          var mine = r.last.from === 'me';
+          return '<a class="msg-item' + (unread ? ' is-unread' : '') + '" href="conversation.html?user=' + p.id + '">' +
+            '<span class="msg-avatar-wrap">' +
               '<img class="avatar avatar-md" src="' + p.avatar + '" alt="" />' +
-              '<div class="msg-body">' +
-                '<div class="msg-top">' +
-                  '<span class="msg-name">' + p.name + '</span>' +
-                  '<span class="msg-time">' + prev.time + '</span>' +
-                '</div>' +
-                '<div class="msg-preview' + (prev.unread ? ' unread' : '') + '">' + prev.last + '</div>' +
+              (p.online ? '<span class="presence" title="Online"></span>' : '') +
+            '</span>' +
+            '<div class="msg-body">' +
+              '<div class="msg-top">' +
+                '<span class="msg-name"><span>' + N.escapeHtml(p.name) + '</span></span>' +
+                '<span class="msg-time">' + N.shortTime(r.last.ts) + '</span>' +
               '</div>' +
-              (prev.unread ? '<span class="unread-dot" aria-label="Neprečítané"></span>' : '') +
-            '</a>';
-        });
-        document.getElementById('msg-list').innerHTML = html || '<div class="empty-state">Žiadne konverzácie.</div>';
+              '<div class="msg-preview' + (unread ? ' unread' : '') + '">' +
+                (mine ? 'Ty: ' : '') + N.escapeHtml(r.last.text) +
+              '</div>' +
+            '</div>' +
+            (unread ? '<span class="unread-dot" aria-label="Neprečítané"></span>' : '') +
+          '</a>';
+        }).join('');
       }
 
       document.getElementById('msg-search').addEventListener('input', function (e) {

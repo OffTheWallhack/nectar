@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f4ebdd" />
+  <title>Priestory — Nectar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="boot.js"></script>
+</head>
+<body>
+  <div class="app-shell has-nav">
+    <header class="topbar">
+      <span class="topbar-title">Priestory</span>
+      <div class="topbar-actions">
+        <button type="button" class="icon-btn" id="btn-new" title="Nový priestor" aria-label="Nový priestor">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="filters" id="filters">
+      <button type="button" class="filter-chip active" data-kind="vsetky">Všetky</button>
+      <button type="button" class="filter-chip" data-kind="výlet">Výlety</button>
+      <button type="button" class="filter-chip" data-kind="projekt">Projekty</button>
+      <button type="button" class="filter-chip" data-kind="iniciatíva">Iniciatívy</button>
+    </div>
+
+    <p class="step-hint" style="padding:12px 14px 0;margin:0">
+      Súkromné spoločné časové osi. Fotky, poznámky, plány a poloha na jednom mieste — a po akcii sa samy upracú.
+    </p>
+
+    <div class="space-list stagger" id="space-list"></div>
+
+    <nav class="bottom-nav" id="bottom-nav"></nav>
+  </div>
+
+  <!-- New space sheet -->
+  <div class="modal-overlay sheet" id="new-modal">
+    <div class="modal">
+      <div class="sheet-grip"></div>
+      <h3>Nový priestor</h3>
+      <div class="form-group">
+        <label for="ns-name">Názov</label>
+        <input class="form-input" id="ns-name" type="text" placeholder="napr. Víkend v Tatrách" maxlength="40" />
+      </div>
+      <div class="form-group">
+        <label for="ns-when">Kedy</label>
+        <input class="form-input" id="ns-when" type="text" placeholder="napr. 12. – 14. júl" maxlength="30" />
+      </div>
+      <div class="form-group">
+        <label for="ns-kind">Typ</label>
+        <select class="form-input" id="ns-kind">
+          <option value="výlet">Výlet</option>
+          <option value="projekt">Projekt</option>
+          <option value="iniciatíva">Iniciatíva</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="ns-cancel">Zrušiť</button>
+        <button type="button" class="btn btn-primary" id="ns-save">Vytvoriť</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      var N = window.Nectar;
+      if (!N.requireAuth()) return;
+      N.renderBottomNav('spaces');
+
+      var list = document.getElementById('space-list');
+      var filter = 'vsetky';
+
+      function render() {
+        var spaces = N.getSpaces();
+        if (filter !== 'vsetky') {
+          spaces = spaces.filter(function (s) { return s.kind === filter; });
+        }
+
+        if (!spaces.length) {
+          list.innerHTML = '<div class="empty-state">' + N.ICONS.spaces +
+            '<p>Žiadny priestor tohto typu.</p></div>';
+          return;
+        }
+
+        list.innerHTML = spaces.map(function (s) {
+          var faces = s.members.slice(0, 4).map(function (id) {
+            var p = N.findPerson(id);
+            return p ? '<img src="' + p.avatar + '" alt="' + N.escapeHtml(p.name) + '" />' : '';
+          }).join('');
+          if (s.members.length > 4) faces += '<span class="more">+' + (s.members.length - 4) + '</span>';
+
+          var pct = Math.round((s.storageUsed / s.storageTotal) * 100);
+
+          return '<a class="space-card" href="space.html?id=' + s.id + '">' +
+            '<div class="space-cover" style="background-image:url(' + s.cover + ')">' +
+              '<span class="kind">' + N.escapeHtml(s.kind) + '</span>' +
+              (s.daysLeft != null
+                ? '<span class="countdown">' + (s.daysLeft === 0 ? 'dnes' : 'o ' + s.daysLeft + ' dni') + '</span>'
+                : '') +
+            '</div>' +
+            '<div class="space-body">' +
+              '<div class="space-name">' + N.escapeHtml(s.name) + '</div>' +
+              '<div class="space-when">' + N.escapeHtml(s.when) + ' · ' + s.entries.length + ' záznamov</div>' +
+              '<div class="space-foot">' +
+                '<span class="faces">' + faces + '</span>' +
+                '<span class="storage-meter">' +
+                  '<span class="storage-bar"><i style="width:' + pct + '%"></i></span>' +
+                  '<span class="storage-text">' + s.storageUsed + ' / ' + s.storageTotal + ' MB</span>' +
+                '</span>' +
+              '</div>' +
+            '</div>' +
+          '</a>';
+        }).join('');
+      }
+
+      document.getElementById('filters').addEventListener('click', function (e) {
+        var btn = e.target.closest('.filter-chip');
+        if (!btn) return;
+        document.querySelectorAll('.filter-chip').forEach(function (c) { c.classList.remove('active'); });
+        btn.classList.add('active');
+        filter = btn.getAttribute('data-kind');
+        render();
+      });
+
+      var modal = document.getElementById('new-modal');
+      document.getElementById('btn-new').onclick = function () {
+        modal.classList.add('open');
+        document.getElementById('ns-name').focus();
+      };
+      document.getElementById('ns-cancel').onclick = function () { modal.classList.remove('open'); };
+      modal.addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+
+      document.getElementById('ns-save').onclick = function () {
+        var name = document.getElementById('ns-name').value.trim();
+        if (!name) { N.showToast('Priestor potrebuje názov'); return; }
+        var spaces = N.getSpaces();
+        spaces.unshift({
+          id: 'sp-' + Date.now(),
+          name: name,
+          kind: document.getElementById('ns-kind').value,
+          when: document.getElementById('ns-when').value.trim() || 'bez termínu',
+          cover: 'https://picsum.photos/seed/nectar-sp-' + Date.now() + '/700/400',
+          members: ['me'],
+          storageUsed: 0,
+          storageTotal: 250,
+          daysLeft: null,
+          live: false,
+          entries: []
+        });
+        N.saveSpaces(spaces);
+        modal.classList.remove('open');
+        N.showToast('Priestor vytvorený', '✓');
+        filter = 'vsetky';
+        document.querySelectorAll('.filter-chip').forEach(function (c, i) {
+          c.classList.toggle('active', i === 0);
+        });
+        render();
+      };
+
+      render();
+    })();
+  </script>
+</body>
+</html>

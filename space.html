@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f4ebdd" />
+  <title>Priestor — Nectar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="boot.js"></script>
+</head>
+<body>
+  <div class="app-shell has-nav">
+    <header class="topbar">
+      <a href="spaces.html" class="back-link" aria-label="Späť na priestory">
+        <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+      </a>
+      <span class="topbar-title" id="top-title">Priestor</span>
+      <span class="topbar-spacer"></span>
+    </header>
+
+    <div id="space-head"></div>
+
+    <div class="section-head">
+      <span class="section-title">Časová os</span>
+      <span class="section-action" id="entry-count"></span>
+    </div>
+
+    <div class="timeline" id="timeline"></div>
+
+    <nav class="bottom-nav" id="bottom-nav"></nav>
+  </div>
+
+  <!-- Add entry sheet -->
+  <div class="modal-overlay sheet" id="entry-modal">
+    <div class="modal">
+      <div class="sheet-grip"></div>
+      <h3>Pridať do priestoru</h3>
+      <div class="form-group">
+        <label for="e-text">Čo sa deje?</label>
+        <textarea class="form-input" id="e-text" rows="3" maxlength="240" placeholder="Poznámka, plán alebo popis fotky…"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="e-note">Popisok na fotku <span class="muted">(voliteľné)</span></label>
+        <input class="form-input" id="e-note" type="text" maxlength="30" placeholder="ako rukou na zadnú stranu" />
+      </div>
+      <label class="settings-row" style="border:1px solid var(--border);border-radius:8px;padding:11px 12px">
+        <span class="sr-body">
+          <span>Priložiť fotku</span>
+          <span class="sr-note" id="e-file-name">žiadna</span>
+        </span>
+        <span class="btn btn-secondary btn-sm">Vybrať</span>
+        <input type="file" accept="image/*" id="e-file" class="hidden" />
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="e-cancel">Zrušiť</button>
+        <button type="button" class="btn btn-primary" id="e-save">Pridať</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      var N = window.Nectar;
+      if (!N.requireAuth()) return;
+      N.renderBottomNav('spaces');
+
+      var id = new URLSearchParams(window.location.search).get('id');
+      var space = N.findSpace(id);
+      var head = document.getElementById('space-head');
+
+      if (!space) {
+        head.innerHTML = '<div class="empty-state"><p>Tento priestor neexistuje.</p>' +
+          '<a class="btn btn-secondary btn-sm" href="spaces.html">Späť na priestory</a></div>';
+        document.getElementById('timeline').innerHTML = '';
+        return;
+      }
+
+      document.title = space.name + ' — Nectar';
+      document.getElementById('top-title').textContent = space.name;
+
+      var TL_GLYPH = { photo: '📷', note: '✎', plan: '📅', loc: '📍' };
+
+      function renderHead() {
+        var faces = space.members.map(function (m) {
+          var p = N.findPerson(m);
+          return p ? '<img src="' + p.avatar + '" alt="' + N.escapeHtml(p.name) + '" />' : '';
+        }).join('');
+        var pct = Math.round((space.storageUsed / space.storageTotal) * 100);
+        var live = space.entries.filter(function (e) { return e.kind === 'loc'; })[0];
+
+        head.innerHTML =
+          '<div class="profile-cover" style="background-image:url(' + space.cover + ')"></div>' +
+          '<div class="profile-header" style="padding-top:14px">' +
+            '<div class="profile-name">' + N.escapeHtml(space.name) + '</div>' +
+            '<div class="profile-id">' + N.escapeHtml(space.kind) + ' · ' + N.escapeHtml(space.when) + '</div>' +
+            (live
+              ? '<div style="margin-bottom:14px"><span class="loc-chip pulse">' + N.ICONS.pinMap +
+                  N.escapeHtml(live.loc || 'zdieľaná poloha') + '</span></div>'
+              : '') +
+            '<div class="profile-stats">' +
+              '<div class="profile-stat"><span class="num">' + space.members.length + '</span><span class="lbl">Ľudí</span></div>' +
+              '<div class="profile-stat"><span class="num">' + space.entries.length + '</span><span class="lbl">Záznamov</span></div>' +
+              '<div class="profile-stat"><span class="num">' + (space.storageTotal - space.storageUsed) + '</span><span class="lbl">MB voľných</span></div>' +
+            '</div>' +
+            '<div style="max-width:300px;margin:0 auto 16px">' +
+              '<span class="storage-bar"><i style="width:' + pct + '%"></i></span>' +
+              '<div class="storage-text">' + space.storageUsed + ' / ' + space.storageTotal + ' MB spoločného úložiska</div>' +
+            '</div>' +
+            '<div class="faces" style="justify-content:center;margin-bottom:14px">' + faces + '</div>' +
+            '<div class="profile-actions">' +
+              '<button type="button" class="btn btn-primary btn-sm" id="btn-add">Pridať záznam</button>' +
+              '<button type="button" class="btn btn-secondary btn-sm" id="btn-loc">Zdieľať polohu</button>' +
+            '</div>' +
+          '</div>';
+
+        document.getElementById('btn-add').onclick = openEntry;
+        document.getElementById('btn-loc').onclick = shareLocation;
+      }
+
+      function renderTimeline() {
+        document.getElementById('entry-count').textContent = space.entries.length + ' záznamov';
+        var tl = document.getElementById('timeline');
+
+        if (!space.entries.length) {
+          tl.innerHTML = '<div class="empty-state">' + N.ICONS.note +
+            '<p>Zatiaľ prázdne.<br />Pridaj prvú fotku alebo poznámku.</p></div>';
+          return;
+        }
+
+        tl.innerHTML = space.entries.map(function (e) {
+          var who = N.findPerson(e.who) || { name: 'Ty', avatar: N.getProfile().avatar };
+          return '<div class="tl-item">' +
+            '<span class="tl-dot">' + (TL_GLYPH[e.kind] || '') + '</span>' +
+            '<div class="tl-when">' + N.escapeHtml(e.when) + '</div>' +
+            '<div class="tl-card">' +
+              '<div class="tl-who">' +
+                '<img class="avatar avatar-xs" src="' + who.avatar + '" alt="" />' +
+                N.escapeHtml(N.firstName(who.name)) +
+              '</div>' +
+              '<div class="tl-text">' + N.escapeHtml(e.text) + '</div>' +
+              (e.kind === 'loc' && e.loc
+                ? '<div style="margin-top:8px"><span class="loc-chip">' + N.ICONS.pinMap + N.escapeHtml(e.loc) + '</span></div>'
+                : '') +
+              (e.photo
+                ? '<div class="tl-photo"><img data-fade src="' + e.photo + '" alt="" loading="lazy" /></div>'
+                : '') +
+              (e.note ? '<div class="tl-note">' + N.escapeHtml(e.note) + '</div>' : '') +
+            '</div>' +
+          '</div>';
+        }).join('');
+
+        N.initImageFade(tl);
+      }
+
+      /* --- adding entries --- */
+      var modal = document.getElementById('entry-modal');
+      var pendingPhoto = null;
+
+      function openEntry() {
+        pendingPhoto = null;
+        document.getElementById('e-text').value = '';
+        document.getElementById('e-note').value = '';
+        document.getElementById('e-file-name').textContent = 'žiadna';
+        modal.classList.add('open');
+      }
+
+      document.getElementById('e-cancel').onclick = function () { modal.classList.remove('open'); };
+      modal.addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+
+      document.getElementById('e-file').addEventListener('change', function (e) {
+        var f = e.target.files && e.target.files[0];
+        if (!f) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          pendingPhoto = reader.result;
+          document.getElementById('e-file-name').textContent = f.name;
+        };
+        reader.readAsDataURL(f);
+      });
+
+      function persist() {
+        var all = N.getSpaces();
+        for (var i = 0; i < all.length; i++) {
+          if (all[i].id === space.id) { all[i] = space; break; }
+        }
+        N.saveSpaces(all);
+      }
+
+      document.getElementById('e-save').onclick = function () {
+        var text = document.getElementById('e-text').value.trim();
+        if (!text && !pendingPhoto) { N.showToast('Napíš niečo alebo prilož fotku'); return; }
+        space.entries.unshift({
+          id: 'e-' + Date.now(),
+          who: 'me',
+          kind: pendingPhoto ? 'photo' : 'note',
+          when: 'Dnes · ' + N.clock(Date.now()),
+          text: text || 'Fotka',
+          photo: pendingPhoto,
+          note: document.getElementById('e-note').value.trim() || null
+        });
+        if (pendingPhoto) space.storageUsed = Math.min(space.storageTotal, space.storageUsed + 3);
+        persist();
+        modal.classList.remove('open');
+        N.showToast('Pridané do priestoru', '✓');
+        renderHead();
+        renderTimeline();
+      };
+
+      /* Location is always a deliberate, one-off share — never a background feed. */
+      function shareLocation() {
+        space.entries.unshift({
+          id: 'e-' + Date.now(),
+          who: 'me',
+          kind: 'loc',
+          when: 'Dnes · ' + N.clock(Date.now()),
+          text: 'Zdieľam polohu s týmto priestorom.',
+          loc: N.getProfile().place || 'Bratislava'
+        });
+        persist();
+        N.showToast('Poloha zdieľaná — vypne sa sama', '📍');
+        renderHead();
+        renderTimeline();
+      }
+
+      renderHead();
+      renderTimeline();
+    })();
+  </script>
+</body>
+</html>

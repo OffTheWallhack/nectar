@@ -3,69 +3,135 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="color-scheme" content="light" />
-  <meta name="theme-color" content="#f3eadc" />
+  <meta name="theme-color" content="#f4ebdd" />
   <title>Nastavenia — Nectar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="styles.css" />
+  <script src="boot.js"></script>
 </head>
 <body>
   <div class="app-shell has-nav">
     <header class="topbar">
-      <a href="profile.html" class="back-link" aria-label="Späť">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 18l-6-6 6-6"/></svg>
+      <a href="profile.html" class="back-link" aria-label="Späť na profil">
+        <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
       </a>
       <span class="topbar-title">Nastavenia</span>
-      <span style="width:28px"></span>
+      <span class="topbar-spacer"></span>
     </header>
 
     <div class="settings-list">
+      <div class="settings-label">Vzhľad</div>
+      <div class="theme-picker" id="theme-picker">
+        <button type="button" class="theme-opt" data-theme="day" aria-pressed="false">
+          <span class="theme-swatch day"></span>
+          <span class="theme-name">Denný papier</span>
+        </button>
+        <button type="button" class="theme-opt" data-theme="dusk" aria-pressed="false">
+          <span class="theme-swatch dusk"></span>
+          <span class="theme-name">Večerný papier</span>
+        </button>
+      </div>
+
+      <div class="settings-label">Účet</div>
       <div class="settings-section">
-        <div class="settings-label">Účet</div>
         <div class="settings-row">
-          <span>Meno</span>
+          <span class="sr-body">Meno</span>
           <span class="settings-value" id="set-name">—</span>
         </div>
         <div class="settings-row">
-          <span>E-mail</span>
+          <span class="sr-body">E-mail</span>
           <span class="settings-value" id="set-email">—</span>
         </div>
         <div class="settings-row">
-          <span>ID</span>
+          <span class="sr-body">
+            ID
+            <span class="sr-note">Číselné ID je natrvalo tvoje</span>
+          </span>
           <span class="settings-value" id="set-id">—</span>
         </div>
       </div>
 
+      <div class="settings-label">Predplatné</div>
       <div class="settings-section">
-        <div class="settings-label">Predplatné</div>
         <div class="settings-row">
-          <span>Nectar</span>
+          <span class="sr-body">
+            Nectar
+            <span class="sr-note">Bez reklám, bez plateného dosahu</span>
+          </span>
           <span><span class="badge-active">Aktívne</span></span>
         </div>
         <div class="settings-row">
-          <span>Cena</span>
+          <span class="sr-body">Cena</span>
           <span class="settings-value">1 € / mesiac</span>
         </div>
         <div class="settings-row">
-          <span>Ďalšia platba</span>
+          <span class="sr-body">Ďalšia platba</span>
           <span class="settings-value">o 30 dní</span>
         </div>
       </div>
 
+      <div class="settings-label">Pokoj</div>
       <div class="settings-section">
-        <div class="settings-label">Súkromie</div>
+        <button type="button" class="settings-row" data-toggle="quiet">
+          <span class="sr-body">
+            Tiché hodiny
+            <span class="sr-note">22:00 – 7:00 bez upozornení</span>
+          </span>
+          <span class="switch" aria-checked="false" role="switch"></span>
+        </button>
+        <button type="button" class="settings-row" data-toggle="marker">
+          <span class="sr-body">
+            Značka „Tu si skončil“
+            <span class="sr-note">Vo feede uvidíš, kde si prestal čítať</span>
+          </span>
+          <span class="switch" aria-checked="true" role="switch"></span>
+        </button>
+        <button type="button" class="settings-row" data-toggle="counts">
+          <span class="sr-body">
+            Skryť počty lajkov
+            <span class="sr-note">Fotky bez čísel</span>
+          </span>
+          <span class="switch" aria-checked="false" role="switch"></span>
+        </button>
+      </div>
+
+      <div class="settings-label">Súkromie</div>
+      <div class="settings-section">
         <a class="settings-row" href="friends.html">
-          <span>Priatelia a kruhy</span>
-          <span class="settings-value">→</span>
+          <span class="sr-body">
+            Priatelia a kruhy
+            <span class="sr-note">Rodina · Priatelia · Práca</span>
+          </span>
+          <svg class="chev" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+        </a>
+        <a class="settings-row" href="spaces.html">
+          <span class="sr-body">
+            Spoločné priestory
+            <span class="sr-note">Úložisko a členovia</span>
+          </span>
+          <svg class="chev" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
         </a>
         <div class="settings-row">
-          <span>Kto môže písať</span>
+          <span class="sr-body">Kto mi môže písať</span>
           <span class="settings-value">Priatelia</span>
         </div>
+        <button type="button" class="settings-row" data-toggle="loc">
+          <span class="sr-body">
+            Poloha na požiadanie
+            <span class="sr-note">Každé zdieľanie musíš potvrdiť</span>
+          </span>
+          <span class="switch" aria-checked="true" role="switch"></span>
+        </button>
       </div>
 
       <div class="settings-section">
+        <button type="button" class="settings-row" id="btn-reset">
+          <span class="sr-body">
+            Obnoviť ukážkové dáta
+            <span class="sr-note">Vymaže lokálne zmeny v prototype</span>
+          </span>
+        </button>
         <button type="button" class="settings-row danger" id="btn-logout">Odhlásiť sa</button>
       </div>
     </div>
@@ -85,6 +151,43 @@
       document.getElementById('set-name').textContent = profile.name || session.name;
       document.getElementById('set-email').textContent = session.email || '—';
       document.getElementById('set-id').textContent = '#' + profile.numericId;
+
+      /* Theme */
+      function paintTheme() {
+        var current = N.getTheme();
+        document.querySelectorAll('.theme-opt').forEach(function (o) {
+          var on = o.getAttribute('data-theme') === current;
+          o.classList.toggle('active', on);
+          o.setAttribute('aria-pressed', String(on));
+        });
+      }
+      document.getElementById('theme-picker').addEventListener('click', function (e) {
+        var opt = e.target.closest('.theme-opt');
+        if (!opt) return;
+        N.setTheme(opt.getAttribute('data-theme'));
+        paintTheme();
+      });
+      paintTheme();
+
+      /* Demo switches — visual only in the prototype. */
+      document.querySelectorAll('[data-toggle]').forEach(function (row) {
+        row.addEventListener('click', function () {
+          var sw = row.querySelector('.switch');
+          var on = sw.getAttribute('aria-checked') !== 'true';
+          sw.setAttribute('aria-checked', String(on));
+        });
+      });
+
+      document.getElementById('btn-reset').onclick = function () {
+        if (!confirm('Obnoviť ukážkové dáta? Tvoje lokálne príspevky a správy sa vymažú.')) return;
+        ['nectar_posts', 'nectar_likes', 'nectar_msgs', 'nectar_profile', 'nectar_pinned',
+         'nectar_seen_ts', 'nectar_draw_votes', 'nectar_drawings', 'nectar_profile_views',
+         'nectar_spaces', 'nectar_read_threads', 'nectar_me_person'].forEach(function (k) {
+          try { localStorage.removeItem(k); } catch (e) {}
+        });
+        N.showToast('Ukážkové dáta obnovené', '✓');
+        setTimeout(function () { window.location.href = 'feed.html'; }, 600);
+      };
 
       document.getElementById('btn-logout').onclick = function () {
         if (!confirm('Naozaj sa chceš odhlásiť?')) return;

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f4ebdd" />
+  <title>Kresba dňa — Nectar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="boot.js"></script>
+</head>
+<body>
+  <div class="app-shell has-nav">
+    <header class="topbar">
+      <a href="feed.html" class="back-link" aria-label="Späť na feed">
+        <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+        <span>Feed</span>
+      </a>
+      <span class="topbar-title">Kresba dňa</span>
+      <span class="topbar-spacer"></span>
+    </header>
+
+    <div class="draw-hero">
+      <span class="eyebrow">Dnešná výzva</span>
+      <h1 id="prompt">…</h1>
+      <span class="draw-timer">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span id="timer"></span>
+      </span>
+    </div>
+
+    <div class="invite-bar">
+      <button type="button" class="btn btn-primary btn-block" id="btn-submit">Pridať svoju kresbu</button>
+      <input type="file" accept="image/*" id="draw-file" class="hidden" />
+    </div>
+
+    <div class="section-head">
+      <span class="section-title">Dnešné kresby</span>
+      <span class="section-action" id="vote-state"></span>
+    </div>
+
+    <div class="draw-grid stagger" id="draw-grid"></div>
+
+    <p class="empty-state" style="padding-top:0">
+      Jeden hlas na deň. O polnoci sa výzva vymení a najlepšia kresba<br />
+      dostane odznak <span class="badge-chip"><span class="glyph">🎨</span>Kresba dňa</span>
+    </p>
+
+    <nav class="bottom-nav" id="bottom-nav"></nav>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      var N = window.Nectar;
+      if (!N.requireAuth()) return;
+      N.renderBottomNav('feed');
+
+      document.getElementById('prompt').textContent = N.DRAW_PROMPT;
+
+      var timer = document.getElementById('timer');
+      function tick() { timer.textContent = 'zostáva ' + N.untilMidnight(); }
+      tick();
+      setInterval(tick, 30000);
+
+      var grid = document.getElementById('draw-grid');
+
+      function render() {
+        var vote = N.getVotes();
+        var drawings = N.getDrawings().slice().sort(function (a, b) {
+          return (b.votes + (vote.id === b.id ? 1 : 0)) - (a.votes + (vote.id === a.id ? 1 : 0));
+        });
+
+        document.getElementById('vote-state').textContent =
+          vote.id ? 'Hlas použitý' : 'Máš 1 hlas';
+
+        grid.innerHTML = drawings.map(function (d, i) {
+          var person = N.findPerson(d.author) || { name: 'Ty', id: 'me' };
+          var voted = vote.id === d.id;
+          var count = d.votes + (voted ? 1 : 0);
+          return '<div class="draw-card' + (i === 0 ? ' leader' : '') + '">' +
+            '<div class="draw-paper">' +
+              '<img data-fade src="' + d.image + '" alt="Kresba od ' + N.escapeHtml(person.name) + '" loading="lazy" />' +
+              (i === 0 ? '<span class="draw-crown" title="Vedie">👑</span>' : '') +
+            '</div>' +
+            '<div class="draw-foot">' +
+              '<span class="draw-author">' + N.escapeHtml(N.firstName(person.name)) + '</span>' +
+              '<button type="button" class="vote-btn' + (voted ? ' voted' : '') + '" ' +
+                'data-vote="' + d.id + '" aria-pressed="' + voted + '" aria-label="Hlasovať">' +
+                N.ICONS.thumb + count +
+              '</button>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+
+        N.initImageFade(grid);
+      }
+
+      grid.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-vote]');
+        if (!btn) return;
+        var id = btn.getAttribute('data-vote');
+        var had = N.getVotes().id;
+        var next = N.castVote(id);
+        if (next) N.showToast(had && had !== id ? 'Hlas presunutý' : 'Hlas odovzdaný', '👍');
+        else N.showToast('Hlas stiahnutý');
+        render();
+      });
+
+      /* Drawings are photos of paper — the file picker is the whole flow. */
+      var file = document.getElementById('draw-file');
+      document.getElementById('btn-submit').onclick = function () { file.click(); };
+
+      file.addEventListener('change', function (e) {
+        var f = e.target.files && e.target.files[0];
+        if (!f) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          var all = N.getDrawings();
+          all.push({ id: 'dr-me-' + Date.now(), author: 'me', image: reader.result, votes: 0 });
+          N.saveDrawings(all);
+          N.showToast('Kresba pridaná', '🎨');
+          render();
+        };
+        reader.readAsDataURL(f);
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>
