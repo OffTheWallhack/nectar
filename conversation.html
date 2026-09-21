@@ -3,34 +3,39 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="color-scheme" content="light" />
-  <meta name="theme-color" content="#f3eadc" />
+  <meta name="theme-color" content="#f4ebdd" />
   <title>Konverzácia — Nectar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="styles.css" />
+  <script src="boot.js"></script>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <a href="messages.html" class="back-link" aria-label="Späť">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 18l-6-6 6-6"/></svg>
+      <a href="messages.html" class="back-link" aria-label="Späť na správy">
+        <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
       </a>
       <a class="chat-header-user" id="chat-user" href="#">
         <img class="avatar avatar-sm" id="chat-avatar" src="" alt="" />
-        <span class="chat-header-name" id="chat-name">…</span>
+        <span>
+          <span class="chat-header-name" id="chat-name">…</span>
+          <span class="chat-header-sub" id="chat-sub"></span>
+        </span>
       </a>
-      <span style="width:28px"></span>
+      <span class="topbar-spacer"></span>
     </header>
 
     <div class="chat-thread" id="chat-thread"></div>
 
     <div class="chat-compose">
-      <button type="button" class="chat-photo-btn" id="btn-photo" title="Fotka (ukážka)" aria-label="Pridať fotku">
+      <button type="button" class="chat-photo-btn" id="btn-photo" title="Priložiť fotku" aria-label="Priložiť fotku">
         <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
       </button>
-      <input type="text" id="chat-input" placeholder="Napíš správu…" autocomplete="off" />
-      <button type="button" class="chat-send" id="chat-send" disabled>Poslať</button>
+      <textarea id="chat-input" rows="1" placeholder="Napíš správu…" autocomplete="off" aria-label="Napíš správu"></textarea>
+      <button type="button" class="chat-send" id="chat-send" disabled aria-label="Poslať">
+        <svg viewBox="0 0 24 24"><path d="M21 3L3 10.5l7 3 3 7z"/><path d="M21 3l-11 11"/></svg>
+      </button>
     </div>
   </div>
 
@@ -43,62 +48,103 @@
       var params = new URLSearchParams(window.location.search);
       var userId = params.get('user') || 'maria';
       var person = N.findPerson(userId);
+
+      var thread = document.getElementById('chat-thread');
       if (!person) {
         document.getElementById('chat-name').textContent = 'Neznámy';
+        thread.innerHTML = '<div class="empty-state"><p>Táto konverzácia neexistuje.</p></div>';
         return;
       }
 
+      N.markThreadRead(person.id);
+
       document.getElementById('chat-name').textContent = person.name;
+      document.getElementById('chat-sub').textContent = person.online ? 'online' : 'naposledy nedávno';
       document.getElementById('chat-avatar').src = person.avatar;
       document.getElementById('chat-user').href = 'profile.html?user=' + person.id;
       document.title = person.name + ' — Nectar';
 
-      var thread = document.getElementById('chat-thread');
       var input = document.getElementById('chat-input');
       var sendBtn = document.getElementById('chat-send');
+      var typingEl = null;
 
       function render() {
         var msgs = N.getMessages(person.id);
-        thread.innerHTML = msgs.map(function (m) {
-          var cls = m.from === 'me' ? 'me' : 'them';
-          return '<div class="bubble ' + cls + '">' + escapeHtml(m.text) +
-            '<div class="bubble-time">' + (m.time || '') + '</div></div>';
-        }).join('');
-        thread.scrollTop = thread.scrollHeight;
+        var html = '';
+        var lastDay = null;
+        var lastFrom = null;
+
+        msgs.forEach(function (m, i) {
+          var day = N.dayLabel(m.ts);
+          if (day !== lastDay) {
+            html += '<div class="day-sep">' + day + '</div>';
+            lastDay = day;
+            lastFrom = null;
+          }
+
+          var mine = m.from === 'me';
+          var grouped = lastFrom === m.from;
+          /* Only the last message of a run carries a timestamp — quieter threads. */
+          var next = msgs[i + 1];
+          var showTime = !next || next.from !== m.from || N.dayLabel(next.ts) !== day;
+
+          html += '<div class="bubble ' + (mine ? 'me' : 'them') + (grouped ? ' grouped' : '') + '">' +
+            N.escapeHtml(m.text) +
+            (showTime
+              ? '<div class="bubble-time">' + N.clock(m.ts) + (mine ? N.ICONS.checkDouble : '') + '</div>'
+              : '') +
+          '</div>';
+
+          lastFrom = m.from;
+        });
+
+        thread.innerHTML = html;
+        scrollToEnd();
       }
 
-      function escapeHtml(s) {
-        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      function scrollToEnd() {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
       }
 
-      function nowTime() {
-        var d = new Date();
-        return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+      /* A short "…" after you send, so the demo thread feels alive. */
+      function showTyping() {
+        if (typingEl) return;
+        typingEl = document.createElement('div');
+        typingEl.className = 'typing';
+        typingEl.innerHTML = '<i></i><i></i><i></i>';
+        thread.appendChild(typingEl);
+        scrollToEnd();
+        setTimeout(function () {
+          if (typingEl) { typingEl.remove(); typingEl = null; }
+        }, 2200);
       }
 
       function send() {
         var text = input.value.trim();
         if (!text) return;
-        N.saveMessage(person.id, { from: 'me', text: text, time: nowTime() });
+        N.saveMessage(person.id, { from: 'me', text: text, ts: Date.now() });
         input.value = '';
+        input.style.height = 'auto';
         sendBtn.disabled = true;
         render();
+        setTimeout(showTyping, 700);
       }
 
       input.addEventListener('input', function () {
         sendBtn.disabled = !input.value.trim();
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 110) + 'px';
       });
       input.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') { e.preventDefault(); send(); }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
       });
       sendBtn.addEventListener('click', send);
 
       document.getElementById('btn-photo').addEventListener('click', function () {
-        N.showToast('Odoslanie fotky — ukážka (nie je v MVP)');
+        N.showToast('Fotky v správach — pripravujeme', '📷');
       });
 
       render();
-      setTimeout(function () { thread.scrollTop = thread.scrollHeight; }, 50);
     })();
   </script>
 </body>

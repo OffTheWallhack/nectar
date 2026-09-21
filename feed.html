@@ -3,32 +3,46 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="color-scheme" content="light" />
-  <meta name="theme-color" content="#f3eadc" />
+  <meta name="theme-color" content="#f4ebdd" />
   <title>Feed — Nectar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="styles.css" />
+  <script src="boot.js"></script>
 </head>
 <body>
   <div class="app-shell has-nav">
     <header class="topbar">
       <span class="topbar-logo">Nectar</span>
       <div class="topbar-actions">
-        <a href="activity.html" class="icon-btn" title="Aktivita" aria-label="Aktivita">
+        <a href="draw.html" class="icon-btn" title="Kresba dňa" aria-label="Kresba dňa">
+          <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>
+        </a>
+        <a href="activity.html" class="icon-btn" id="bell" title="Aktivita" aria-label="Aktivita">
           <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+          <span class="dot"></span>
         </a>
       </div>
     </header>
 
-    <div class="filters" id="filters">
+    <div class="filters" id="filters" role="tablist" aria-label="Kruhy">
       <button type="button" class="filter-chip active" data-circle="vsetci">Všetci</button>
       <button type="button" class="filter-chip" data-circle="rodina">Rodina</button>
       <button type="button" class="filter-chip" data-circle="priatelia">Priatelia</button>
       <button type="button" class="filter-chip" data-circle="praca">Práca</button>
     </div>
 
-    <div class="feed-list" id="feed-list"></div>
+    <a class="prompt-card" href="draw.html" id="prompt-card">
+      <span class="eyebrow">Kresba dňa</span>
+      <div class="prompt-text" id="prompt-text"></div>
+      <div class="prompt-meta">
+        <span class="prompt-faces" id="prompt-faces"></span>
+        <span id="prompt-count"></span>
+      </div>
+    </a>
+
+    <div class="feed-list" id="feed-list" aria-live="polite"></div>
+
     <nav class="bottom-nav" id="bottom-nav"></nav>
   </div>
 
@@ -39,52 +53,163 @@
       if (!N.requireAuth()) return;
       N.renderBottomNav('feed');
 
+      var list = document.getElementById('feed-list');
       var currentFilter = 'vsetci';
-      var likes = N.getLikes();
+
+      /* Where the reader stopped last time — drawn as a divider, never as a jump. */
+      var lastSeen = N.getSeenTs();
+
+      /* --- daily drawing teaser --- */
+      document.getElementById('prompt-text').textContent = N.DRAW_PROMPT;
+      var drawings = N.getDrawings();
+      document.getElementById('prompt-faces').innerHTML = drawings.slice(0, 3).map(function (d) {
+        var p = N.findPerson(d.author);
+        return p ? '<img src="' + p.avatar + '" alt="" />' : '';
+      }).join('');
+      document.getElementById('prompt-count').textContent =
+        drawings.length + ' kresieb · zostáva ' + N.untilMidnight();
+
+      /* --- skeletons while the demo "loads" --- */
+      function skeletons(n) {
+        var one =
+          '<div class="skel-card">' +
+            '<div class="skel-row">' +
+              '<div class="skeleton skel-circle"></div>' +
+              '<div style="flex:1">' +
+                '<div class="skeleton skel-line" style="width:45%;margin-bottom:6px"></div>' +
+                '<div class="skeleton skel-line" style="width:28%;height:7px"></div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="skeleton skel-photo"></div>' +
+            '<div class="skeleton skel-line" style="width:70%"></div>' +
+          '</div>';
+        return new Array(n + 1).join(one);
+      }
+
+      function postCard(post, opts) {
+        var person = N.findPerson(post.authorId) || { name: 'Neznámy', avatar: '', id: post.authorId };
+        var liked = !!N.getLikes()[post.id];
+        var likeCount = post.likes + (liked ? 1 : 0);
+        var isPinned = opts && opts.pinned;
+
+        return '<article class="post-card' + (isPinned ? ' pinned' : '') + '" data-id="' + post.id + '">' +
+          (isPinned
+            ? '<div class="pin-flag">' + N.ICONS.pin + 'Pripnuté</div>'
+            : '') +
+          '<div class="post-header">' +
+            '<a href="profile.html?user=' + person.id + '"><img class="avatar" src="' + person.avatar + '" alt="" /></a>' +
+            '<div class="post-meta">' +
+              '<a class="post-author" href="profile.html?user=' + person.id + '">' +
+                N.escapeHtml(person.name) + N.badgeChip(person) +
+              '</a>' +
+              '<div class="post-time">' + N.relTime(post.ts) + '</div>' +
+            '</div>' +
+            '<span class="post-circle">' + N.circleLabel(post.circle) + '</span>' +
+          '</div>' +
+          '<div class="post-photo" data-photo="' + post.id + '">' +
+            '<img class="post-image" data-fade src="' + post.image + '" alt="" loading="lazy" />' +
+            (post.note ? '<div class="photo-note">' + N.escapeHtml(post.note) + '</div>' : '') +
+            '<span class="burst" aria-hidden="true">' + N.ICONS.heartFull + '</span>' +
+          '</div>' +
+          '<div class="post-body">' +
+            '<div class="post-actions">' +
+              '<button type="button" class="act-btn like-btn' + (liked ? ' liked' : '') + '" ' +
+                'data-like="' + post.id + '" aria-pressed="' + liked + '" aria-label="Páči sa mi">' +
+                N.ICONS.heart +
+              '</button>' +
+              '<span class="spacer"></span>' +
+              '<button type="button" class="act-btn" data-pin="' + post.id + '" ' +
+                'title="' + (isPinned ? 'Odopnúť' : 'Pripnúť na vrch') + '" ' +
+                'aria-label="' + (isPinned ? 'Odopnúť' : 'Pripnúť na vrch') + '">' + N.ICONS.pin + '</button>' +
+            '</div>' +
+            '<div class="post-likes">' + likeCount + ' páči sa</div>' +
+            '<p class="post-caption"><span class="author">' + N.escapeHtml(N.firstName(person.name)) + '</span>' +
+              N.escapeHtml(post.caption) + '</p>' +
+            (person.id === 'me' ? '' :
+              '<a class="write-link" href="conversation.html?user=' + person.id + '">' +
+                N.ICONS.messages + 'Napísať ' + N.escapeHtml(N.firstName(person.name)) + '</a>') +
+          '</div>' +
+        '</article>';
+      }
 
       function render() {
         var posts = N.getPosts().slice().sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
         if (currentFilter !== 'vsetci') {
           posts = posts.filter(function (p) { return p.circle === currentFilter; });
         }
-        var list = document.getElementById('feed-list');
+
         if (!posts.length) {
-          list.innerHTML = '<div class="empty-state">Zatiaľ žiadne príspevky v tomto kruhu.</div>';
+          list.innerHTML =
+            '<div class="empty-state">' +
+              N.ICONS.feed +
+              '<p>V tomto kruhu zatiaľ nič nie je.<br />Skús iný kruh alebo pridaj prvý príspevok.</p>' +
+            '</div>';
           return;
         }
-        list.innerHTML = posts.map(function (post) {
-          var person = N.findPerson(post.authorId) || { name: 'Neznámy', avatar: '', id: post.authorId };
-          var liked = !!likes[post.id];
-          var likeCount = post.likes + (liked ? 1 : 0);
-          return (
-            '<article class="post-card" data-id="' + post.id + '">' +
-              '<div class="post-header">' +
-                '<a href="profile.html?user=' + person.id + '"><img class="avatar" src="' + person.avatar + '" alt="" /></a>' +
-                '<div class="post-meta">' +
-                  '<a class="post-author" href="profile.html?user=' + person.id + '">' + person.name + '</a>' +
-                  '<div class="post-time">' + post.time + '</div>' +
-                '</div>' +
-                '<span class="post-circle">' + N.circleLabel(post.circle) + '</span>' +
-              '</div>' +
-              '<img class="post-image" src="' + post.image + '" alt="" loading="lazy" />' +
-              '<div class="post-body">' +
-                '<div class="post-actions">' +
-                  '<button type="button" class="like-btn' + (liked ? ' liked' : '') + '" data-like="' + post.id + '" aria-label="Páči sa mi">' +
-                    N.ICONS.heart +
-                  '</button>' +
-                '</div>' +
-                '<div class="post-likes">' + likeCount + ' páči sa</div>' +
-                '<p class="post-caption"><span class="author">' + person.name.split(' ')[0] + '</span>' + escapeHtml(post.caption) + '</p>' +
-                '<a class="write-link" href="conversation.html?user=' + person.id + '">Napísať</a>' +
-              '</div>' +
-            '</article>'
-          );
-        }).join('');
+
+        var pinnedId = N.getPinnedId();
+        var pinned = null;
+        var rest = [];
+        posts.forEach(function (p) {
+          if (p.id === pinnedId && !pinned) pinned = p;
+          else rest.push(p);
+        });
+
+        var html = pinned ? postCard(pinned, { pinned: true }) : '';
+        var dividerDrawn = false;
+
+        rest.forEach(function (p) {
+          if (!dividerDrawn && lastSeen && p.ts <= lastSeen) {
+            html += '<div class="seen-divider">Tu si skončil</div>';
+            dividerDrawn = true;
+          }
+          html += postCard(p);
+        });
+
+        html +=
+          '<div class="feed-end">' +
+            '<span class="mark">·&nbsp;·&nbsp;·</span>' +
+            '<p>To je všetko, čo je nové.</p>' +
+            '<p class="sub">Žiadny nekonečný scroll. Vráť sa, keď budeš chcieť.</p>' +
+          '</div>';
+
+        list.innerHTML = html;
+        N.initImageFade(list);
       }
 
-      function escapeHtml(s) {
-        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      /* Double tap / double click on a photo — like with a heart burst. */
+      var lastTap = 0;
+      function burstLike(photoEl, postId) {
+        var btn = photoEl.closest('.post-card').querySelector('[data-like]');
+        if (!btn.classList.contains('liked')) N.toggleLike(postId);
+        var burst = photoEl.querySelector('.burst');
+        burst.classList.remove('play');
+        void burst.offsetWidth;
+        burst.classList.add('play');
+        render();
       }
+
+      list.addEventListener('click', function (e) {
+        var likeBtn = e.target.closest('[data-like]');
+        if (likeBtn) { N.toggleLike(likeBtn.getAttribute('data-like')); render(); return; }
+
+        var pinBtn = e.target.closest('[data-pin]');
+        if (pinBtn) {
+          var id = pinBtn.getAttribute('data-pin');
+          var was = N.getPinnedId() === id;
+          N.setPinnedId(was ? null : id);
+          N.showToast(was ? 'Odopnuté' : 'Pripnuté na vrch — môže byť len jedno');
+          render();
+          return;
+        }
+
+        var photo = e.target.closest('[data-photo]');
+        if (photo) {
+          var t = Date.now();
+          if (t - lastTap < 320) { burstLike(photo, photo.getAttribute('data-photo')); lastTap = 0; }
+          else { lastTap = t; }
+        }
+      });
 
       document.getElementById('filters').addEventListener('click', function (e) {
         var btn = e.target.closest('.filter-chip');
@@ -95,16 +220,15 @@
         render();
       });
 
-      document.getElementById('feed-list').addEventListener('click', function (e) {
-        var btn = e.target.closest('[data-like]');
-        if (!btn) return;
-        var id = btn.getAttribute('data-like');
-        N.toggleLike(id);
-        likes = N.getLikes();
-        render();
-      });
+      list.innerHTML = skeletons(2);
+      setTimeout(render, 260);
 
-      render();
+      /* Remember the newest post seen, so the divider is right next visit. */
+      window.addEventListener('pagehide', function () {
+        var posts = N.getPosts();
+        var newest = posts.reduce(function (m, p) { return Math.max(m, p.ts || 0); }, 0);
+        if (newest) N.setSeenTs(newest);
+      });
     })();
   </script>
 </body>

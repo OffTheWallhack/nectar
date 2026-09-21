@@ -3,16 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="color-scheme" content="light" />
-  <meta name="theme-color" content="#f3eadc" />
+  <meta name="theme-color" content="#f4ebdd" />
   <title>Profil — Nectar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="styles.css" />
+  <script src="boot.js"></script>
 </head>
 <body>
   <div class="app-shell has-nav" id="app-shell">
     <header class="topbar">
+      <a href="feed.html" class="back-link hidden" id="back-link" aria-label="Späť na feed">
+        <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+      </a>
       <span class="topbar-title" id="top-title">Profil</span>
       <div class="topbar-actions">
         <a href="settings.html" class="icon-btn" id="settings-link" title="Nastavenia" aria-label="Nastavenia">
@@ -21,6 +24,7 @@
       </div>
     </header>
 
+    <!-- Pull-down one-time invite QR (own profile only) -->
     <div class="qr-invite hidden" id="qr-invite" aria-hidden="true" role="region" aria-label="Dočasná pozvánka QR">
       <button type="button" class="qr-pull-hint" id="qr-pull-hint" aria-expanded="false" aria-controls="qr-invite-body">
         <span class="qr-pull-handle" aria-hidden="true"></span>
@@ -39,8 +43,27 @@
       </div>
     </div>
 
+    <div class="profile-cover" id="profile-cover"></div>
     <div class="profile-header" id="profile-header"></div>
-    <div class="photo-grid" id="photo-grid"></div>
+
+    <div class="tabs" id="tabs">
+      <button type="button" class="tab active" data-tab="photos">Fotky</button>
+      <button type="button" class="tab" data-tab="badges">Odznaky</button>
+    </div>
+
+    <div class="tab-panel active" id="panel-photos">
+      <div class="photo-grid" id="photo-grid"></div>
+    </div>
+
+    <div class="tab-panel" id="panel-badges">
+      <div class="section-head"><span class="section-title">Získané</span></div>
+      <div class="badge-shelf" id="badge-shelf"></div>
+      <div class="section-head"><span class="section-title">Zatiaľ nezískané</span></div>
+      <div class="badge-shelf" id="badge-locked"></div>
+      <p class="empty-state" style="padding-top:4px">
+        Odznaky sú za skutočné veci — nie za čas strávený v aplikácii.
+      </p>
+    </div>
 
     <nav class="bottom-nav" id="bottom-nav"></nav>
   </div>
@@ -76,8 +99,7 @@
       var N = window.Nectar;
       if (!N.requireAuth()) return;
 
-      var params = new URLSearchParams(window.location.search);
-      var userId = params.get('user');
+      var userId = new URLSearchParams(window.location.search).get('user');
       var isOwn = !userId || userId === 'me';
 
       if (isOwn) {
@@ -91,72 +113,118 @@
       if (isOwn) {
         profile = N.getProfile();
         person = {
-          id: 'me',
-          name: profile.name,
-          avatar: profile.avatar,
-          status: profile.status,
-          numericId: profile.numericId,
-          place: profile.place
+          id: 'me', name: profile.name, avatar: profile.avatar, cover: profile.cover,
+          status: profile.status, numericId: profile.numericId, place: profile.place,
+          badges: profile.badges || []
         };
         N.renderBottomNav('profile');
       } else {
         person = N.findPerson(userId);
         if (!person) {
-          document.getElementById('profile-header').innerHTML = '<p class="empty-state">Profil nenájdený.</p>';
-          N.renderBottomNav('profile');
+          document.getElementById('profile-header').innerHTML =
+            '<p class="empty-state">Profil sa nenašiel.</p>';
+          N.renderBottomNav('feed');
           return;
         }
-        person.place = person.place || 'Bratislava';
         document.getElementById('settings-link').classList.add('hidden');
+        document.getElementById('back-link').classList.remove('hidden');
         N.renderBottomNav('feed');
       }
 
       document.title = person.name + ' — Nectar';
-      document.getElementById('top-title').textContent = person.name.split(' ')[0];
+      document.getElementById('top-title').textContent = N.firstName(person.name);
+      document.getElementById('profile-cover').style.backgroundImage =
+        'url(' + (person.cover || 'https://picsum.photos/seed/nectar-cover-' + person.id + '/800/300') + ')';
 
       function renderHeader() {
+        var views = N.getViews();
+        var myPosts = N.getPosts().filter(function (p) {
+          return isOwn ? (p.authorId === 'me' || p.isMine) : p.authorId === person.id;
+        }).length;
+
         var actions = isOwn
           ? '<button type="button" class="btn btn-secondary btn-sm" id="btn-edit">Upraviť profil</button>' +
-            '<a href="friends.html" class="btn btn-secondary btn-sm">Priatelia</a>'
-          : '<a href="conversation.html?user=' + person.id + '" class="btn btn-primary btn-sm">Napísať</a>';
+            '<a href="friends.html" class="btn btn-secondary btn-sm">Priatelia</a>' +
+            '<a href="spaces.html" class="btn btn-secondary btn-sm">Priestory</a>'
+          : '<a href="conversation.html?user=' + person.id + '" class="btn btn-primary btn-sm">Napísať</a>' +
+            '<button type="button" class="btn btn-secondary btn-sm" id="btn-tag">Zmeniť kruh</button>';
+
+        /* A profile-photo ring marks a major achievement — the brief's "border badge". */
+        var major = N.topBadge(person);
+        var avatarHtml = major && major.major
+          ? '<span class="avatar-ring"><img class="avatar avatar-lg" src="' + person.avatar + '" alt="" /></span>'
+          : '<img class="avatar avatar-lg" src="' + person.avatar + '" alt="" />';
 
         document.getElementById('profile-header').innerHTML =
-          '<div class="profile-avatar-wrap"><img class="avatar avatar-lg" src="' + person.avatar + '" alt="" /></div>' +
-          '<div class="profile-name">' + person.name + '</div>' +
-          '<div class="profile-id">#' + (person.numericId || '—') + '</div>' +
-          '<div class="profile-status">' + (person.status || '') + '</div>' +
+          '<div class="profile-avatar-wrap">' + avatarHtml + '</div>' +
+          '<div class="profile-name">' + N.escapeHtml(person.name) + N.badgeChip(person) + '</div>' +
+          '<div class="profile-id">#' + N.escapeHtml(person.numericId || '—') + '</div>' +
+          '<div class="profile-status">' + N.escapeHtml(person.status || '') + '</div>' +
+          '<div class="profile-stats">' +
+            '<div class="profile-stat"><span class="num">' + myPosts + '</span><span class="lbl">Fotiek</span></div>' +
+            '<div class="profile-stat"><span class="num">' + (person.badges || []).length + '</span><span class="lbl">Odznakov</span></div>' +
+            '<div class="profile-stat"><span class="num">' + (isOwn ? views.total : 128) + '</span><span class="lbl">Návštev</span></div>' +
+          '</div>' +
+          (isOwn ? '<p class="step-hint">Profil si dnes pozrelo ' + views.today + ' ľudí.</p>' : '') +
           '<div class="profile-actions">' + actions + '</div>' +
-          (isOwn
-            ? '<div class="profile-links"><a href="friends.html">Priatelia / kruhy</a><a href="settings.html">Nastavenia</a></div>'
-            : '') +
-          (person.place ? '<div class="pinned-place">📍 ' + person.place + '</div>' : '');
+          (person.place
+            ? '<div class="pinned-place">' + N.ICONS.pinMap + N.escapeHtml(person.place) + '</div>'
+            : '');
 
-        if (isOwn) {
-          document.getElementById('btn-edit').onclick = openEdit;
-        }
+        if (isOwn) document.getElementById('btn-edit').onclick = openEdit;
+        else document.getElementById('btn-tag').onclick = function () {
+          N.showToast('Kruhy spravuješ v Priateľoch');
+        };
       }
 
-      // Photo grid: own posts or person's posts / demo seeds
       function renderGrid() {
         var imgs = [];
-        if (isOwn) {
-          var mine = N.getPosts().filter(function (p) { return p.authorId === 'me' || p.isMine; });
-          mine.forEach(function (p) { imgs.push(p.image); });
-          // demo placeholders for own grid
-          while (imgs.length < 6) {
-            imgs.push('https://picsum.photos/seed/nectar-me-grid' + imgs.length + '/400');
-          }
-        } else {
-          var theirs = N.getPosts().filter(function (p) { return p.authorId === person.id; });
-          theirs.forEach(function (p) { imgs.push(p.image); });
-          while (imgs.length < 6) {
-            imgs.push('https://picsum.photos/seed/nectar-' + person.id + '-g' + imgs.length + '/400');
-          }
+        var mine = N.getPosts().filter(function (p) {
+          return isOwn ? (p.authorId === 'me' || p.isMine) : p.authorId === person.id;
+        });
+        mine.forEach(function (p) { imgs.push(p.image); });
+        var seed = isOwn ? 'nectar-me-grid' : 'nectar-' + person.id + '-g';
+        while (imgs.length < 9) {
+          imgs.push('https://picsum.photos/seed/' + seed + imgs.length + '/400');
         }
         document.getElementById('photo-grid').innerHTML = imgs.slice(0, 9).map(function (src) {
           return '<img src="' + src + '" alt="" loading="lazy" />';
         }).join('');
       }
+
+      function renderBadges() {
+        var owned = person.badges || [];
+        document.getElementById('badge-shelf').innerHTML = owned.map(function (id) {
+          var b = N.badge(id);
+          if (!b) return '';
+          return '<div class="badge-card' + (b.major ? ' major' : '') + '">' +
+            '<span class="glyph">' + b.glyph + '</span>' +
+            '<div class="badge-name">' + N.escapeHtml(b.name) + '</div>' +
+            '<div class="badge-when">' + N.escapeHtml(b.when) + '</div>' +
+          '</div>';
+        }).join('') || '<p class="empty-state" style="padding:8px 14px">Zatiaľ žiadne odznaky.</p>';
+
+        document.getElementById('badge-locked').innerHTML = Object.keys(N.BADGES)
+          .filter(function (id) { return owned.indexOf(id) === -1; })
+          .map(function (id) {
+            var b = N.BADGES[id];
+            return '<div class="badge-card locked">' +
+              '<span class="glyph">' + b.glyph + '</span>' +
+              '<div class="badge-name">' + N.escapeHtml(b.name) + '</div>' +
+              '<div class="badge-when">' + N.escapeHtml(b.when) + '</div>' +
+            '</div>';
+          }).join('');
+      }
+
+      document.getElementById('tabs').addEventListener('click', function (e) {
+        var tab = e.target.closest('.tab');
+        if (!tab) return;
+        var key = tab.getAttribute('data-tab');
+        document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
+        document.getElementById('panel-' + key).classList.add('active');
+      });
 
       function openEdit() {
         var p = N.getProfile();
@@ -184,12 +252,14 @@
         person.status = p.status;
         person.place = p.place;
         document.getElementById('edit-modal').classList.remove('open');
+        document.getElementById('top-title').textContent = N.firstName(p.name);
         renderHeader();
-        N.showToast('Profil uložený');
+        N.showToast('Profil uložený', '✓');
       };
 
       renderHeader();
       renderGrid();
+      renderBadges();
     })();
   </script>
 </body>

@@ -3,20 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="color-scheme" content="light" />
-  <meta name="theme-color" content="#f3eadc" />
+  <meta name="theme-color" content="#f4ebdd" />
   <title>Nový príspevok — Nectar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="styles.css" />
+  <script src="boot.js"></script>
 </head>
 <body>
   <div class="app-shell has-nav">
     <header class="topbar">
-      <a href="feed.html" class="back-link" aria-label="Zrušiť">Zrušiť</a>
+      <a href="feed.html" class="back-link">Zrušiť</a>
       <span class="topbar-title">Nový príspevok</span>
-      <span style="width:48px"></span>
+      <span class="topbar-spacer"></span>
     </header>
+    <div class="progress-rail"><i id="progress" style="width:33%"></i></div>
 
     <div class="compose-steps">
       <!-- Step 1: photo -->
@@ -25,9 +26,9 @@
         <label class="photo-picker" id="photo-picker">
           <input type="file" accept="image/*" id="photo-input" />
           <span class="picker-hint">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            <br />Klepni pre výber fotky<br />
-            <small style="opacity:0.7">alebo použi ukážkovú</small>
+            <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Klepni pre výber fotky
+            <small>alebo použi ukážkovú nižšie</small>
           </span>
           <img id="photo-preview" alt="" class="hidden" />
         </label>
@@ -37,12 +38,24 @@
         </div>
       </div>
 
-      <!-- Step 2: text -->
+      <!-- Step 2: text + handwritten note -->
       <div class="compose-step" id="step-2">
-        <p class="step-hint">2 / 3 — Napíš text</p>
+        <p class="step-hint">2 / 3 — Napíš pár slov</p>
         <div class="form-group">
+          <label for="caption">Text</label>
           <textarea class="form-input" id="caption" rows="4" placeholder="Čo sa deje?" maxlength="500"></textarea>
+          <div class="char-count"><span id="count">0</span> / 500</div>
         </div>
+        <div class="form-group">
+          <label for="note">Poznámka na fotku <span class="muted">(voliteľné)</span></label>
+          <input class="form-input" id="note" type="text" maxlength="40" placeholder="ako popisok na zadnej strane fotky" />
+        </div>
+
+        <div class="compose-preview" id="preview-wrap">
+          <img id="preview-img" alt="" />
+          <div class="cp-body" id="preview-text"><span class="muted">Ukážka…</span></div>
+        </div>
+
         <div class="step-actions">
           <button type="button" class="btn btn-secondary" id="back-step-1">Späť</button>
           <button type="button" class="btn btn-primary" id="to-step-3" style="flex:1">Ďalej</button>
@@ -51,27 +64,42 @@
 
       <!-- Step 3: audience -->
       <div class="compose-step" id="step-3">
-        <p class="step-hint">3 / 3 — Komu zdieľať</p>
+        <p class="step-hint">3 / 3 — Komu to ukázať</p>
         <div class="audience-options" id="audience">
           <label class="audience-option selected">
             <input type="radio" name="audience" value="priatelia" checked />
-            <span>Priatelia</span>
+            <span class="ao-body">
+              <span class="ao-title">Priatelia</span>
+              <span class="ao-note">Ľudia s tagom „priatelia“</span>
+            </span>
           </label>
           <label class="audience-option">
             <input type="radio" name="audience" value="rodina" />
-            <span>Rodina</span>
+            <span class="ao-body">
+              <span class="ao-title">Rodina</span>
+              <span class="ao-note">Najbližší kruh</span>
+            </span>
           </label>
           <label class="audience-option">
             <input type="radio" name="audience" value="praca" />
-            <span>Práca</span>
+            <span class="ao-body">
+              <span class="ao-title">Práca</span>
+              <span class="ao-note">Kolegovia a projekty</span>
+            </span>
           </label>
           <label class="audience-option">
             <input type="radio" name="audience" value="verejne" />
-            <span>Verejné</span>
+            <span class="ao-body">
+              <span class="ao-title">Verejné</span>
+              <span class="ao-note">Uvidí každý, kto má Nectar</span>
+            </span>
           </label>
           <label class="audience-option">
             <input type="radio" name="audience" value="sukromne" />
-            <span>Súkromné (len ja)</span>
+            <span class="ao-body">
+              <span class="ao-title">Súkromné</span>
+              <span class="ao-note">Len pre teba — denníkový zápis</span>
+            </span>
           </label>
         </div>
         <div class="step-actions">
@@ -93,10 +121,13 @@
 
       var photoData = null;
       var demoSeed = 'nectar-user-' + Date.now();
+      var progress = document.getElementById('progress');
 
       function showStep(n) {
         document.querySelectorAll('.compose-step').forEach(function (s) { s.classList.remove('active'); });
         document.getElementById('step-' + n).classList.add('active');
+        progress.style.width = Math.round((n / 3) * 100) + '%';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
 
       var picker = document.getElementById('photo-picker');
@@ -108,6 +139,7 @@
         preview.src = url;
         preview.classList.remove('hidden');
         picker.classList.add('has-image');
+        document.getElementById('preview-img').src = url;
         to2.disabled = false;
       }
 
@@ -123,6 +155,20 @@
         setPhoto('https://picsum.photos/seed/' + demoSeed + '/800');
       };
 
+      /* Live preview while typing — you see the card before you commit to it. */
+      var caption = document.getElementById('caption');
+      var note = document.getElementById('note');
+      function updatePreview() {
+        document.getElementById('count').textContent = caption.value.length;
+        var text = caption.value.trim();
+        var n = note.value.trim();
+        document.getElementById('preview-text').innerHTML =
+          (text ? N.escapeHtml(text) : '<span class="muted">Ukážka…</span>') +
+          (n ? '<div class="tl-note">' + N.escapeHtml(n) + '</div>' : '');
+      }
+      caption.addEventListener('input', updatePreview);
+      note.addEventListener('input', updatePreview);
+
       to2.onclick = function () { if (photoData) showStep(2); };
       document.getElementById('back-step-1').onclick = function () { showStep(1); };
       document.getElementById('to-step-3').onclick = function () { showStep(3); };
@@ -134,39 +180,40 @@
       });
 
       document.getElementById('btn-share').onclick = function () {
-        var caption = document.getElementById('caption').value.trim() || 'Nový príspevok';
+        var text = caption.value.trim() || 'Nový príspevok';
         var audience = (document.querySelector('input[name="audience"]:checked') || {}).value || 'priatelia';
-        var circle = audience === 'verejne' || audience === 'sukromne' ? 'priatelia' : audience;
-        var posts = N.getPosts();
+        var circle = (audience === 'verejne' || audience === 'sukromne') ? 'priatelia' : audience;
         var session = N.getSession();
+        var profile = N.getProfile();
+
+        var posts = N.getPosts();
         posts.unshift({
           id: 'p-local-' + Date.now(),
           authorId: 'me',
-          authorName: session.name,
           image: photoData,
-          caption: caption,
+          caption: text,
+          note: note.value.trim() || null,
           circle: circle,
-          time: 'teraz',
           likes: 0,
           ts: Date.now(),
           isMine: true
         });
-        // Inject "me" into findPerson path via temporary PEOPLE-like handling in feed
         N.savePosts(posts);
-        // Stash me as a pseudo person for feed rendering
+
+        /* Feed renders authors through findPerson('me'), so keep that in sync. */
         try {
-          var extra = JSON.parse(localStorage.getItem('nectar_me_person') || 'null') || {};
-          extra = {
+          localStorage.setItem('nectar_me_person', JSON.stringify({
             id: 'me',
-            name: session.name || 'Ty',
-            avatar: N.getProfile().avatar,
-            circle: circle
-          };
-          localStorage.setItem('nectar_me_person', JSON.stringify(extra));
+            name: profile.name || session.name || 'Ty',
+            avatar: profile.avatar
+          }));
         } catch (err) {}
-        N.showToast('Príspevok zdieľaný');
-        setTimeout(function () { window.location.href = 'feed.html'; }, 350);
+
+        N.showToast(audience === 'sukromne' ? 'Uložené len pre teba' : 'Príspevok zdieľaný', '✓');
+        setTimeout(function () { window.location.href = 'feed.html'; }, 450);
       };
+
+      updatePreview();
     })();
   </script>
 </body>
