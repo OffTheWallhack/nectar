@@ -7,8 +7,8 @@ Sekundárne: chronologický feed (fotky + krátky text) s kruhmi.
 Predplatné ~1 € / mesiac. Žiadne stories, reels, hlasovky, skupinové chaty, odznaky, boost, algoritmus.
 
 ## Dizajn
-Inšpirácia: starý Instagram + starý Twitter (cca 2005–2015).
-Čistý, príjemný, veľa bielej, jemná typografia, jednoduché ikony, žiadny vizuálny chaos.
+**Warm paper:** krémový papier, mäkký atrament, honey/amber akcent šetrne.
+Inšpirácia: starý Instagram + starý Twitter (cca 2005–2015), nie neon / glass / dark mode.
 Mobil-first web (max-width ~420px centered na desktope), funguje aj v prehliadači.
 UI copy: slovenčina.
 

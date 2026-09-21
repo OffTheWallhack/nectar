@@ -62,7 +62,18 @@ Na desktope potiahni za úchytku pod lištou („Potiahni dole pre QR“) alebo 
 
 ## Dizajn
 
-Inšpirácia: starý Instagram + starý Twitter (cca 2005–2015). Mobil-first, max-width ~420 px.
+**Warm paper** — krémový papier, mäkký atrament, med / amber len na tlačidlách, aktívnej navigácii, QR a odkazoch.
+
+- Pozadie: teplý papier (`#f3eadc`), nie čistá biela
+- Text: teplá takmer-čierna (`#2a241c`)
+- Akcent: nectar gold (`#c48932`) — šetrne
+- Fotky: polaroid-lite okraj a jemný tieň
+- Karty (feed, QR pozvánka) ako papier na stole
+- Typografia: *Fraunces* (značka „Nectar“) + Source Sans 3 (UI) cez Google Fonts CDN
+- `color-scheme: light` — žiadny harsh dark mode
+
+Nálada: pokojný starý Instagram / Twitter, nie neon, nie glassmorphism, nie fialové AI.
+
 Viditeľný text je v **slovenčine**. Wireframe: `WIREFRAME.md`.
 
 ## Čo nie je v MVP

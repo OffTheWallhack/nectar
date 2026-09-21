@@ -130,11 +130,11 @@
       canvas.style.height = css + 'px';
       var ctx = canvas.getContext('2d');
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = '#fffaf2';
       ctx.fillRect(0, 0, css, css);
       var pad = 10;
       var cell = (css - pad * 2) / n;
-      ctx.fillStyle = '#262626';
+      ctx.fillStyle = '#2a241c';
       for (var r = 0; r < n; r++) {
         for (var c = 0; c < n; c++) {
           if (qr.isDark(r, c)) {
@@ -146,13 +146,13 @@
       var holeH = 20;
       var hx = (css - holeW) / 2;
       var hy = (css - holeH) / 2;
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = '#fffaf2';
       ctx.beginPath();
       if (ctx.roundRect) ctx.roundRect(hx, hy, holeW, holeH, 3);
       else ctx.rect(hx, hy, holeW, holeH);
       ctx.fill();
-      ctx.fillStyle = '#262626';
-      ctx.font = 'italic 12px Georgia, "Times New Roman", Times, serif';
+      ctx.fillStyle = '#2a241c';
+      ctx.font = 'italic 12px Fraunces, Georgia, "Times New Roman", Times, serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('Nectar', css / 2, css / 2 + 0.5);
