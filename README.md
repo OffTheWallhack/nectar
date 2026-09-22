@@ -47,12 +47,14 @@ Potom otvor v prehliadači: [http://localhost:8080](http://localhost:8080)
 | `draw.html` | **Kresba dňa** — denná výzva, galéria, 1 hlas na deň |
 | `spaces.html` | **Spoločné priestory** — výlety, projekty, iniciatívy |
 | `space.html` | Časová os priestoru — fotky, poznámky, plány, poloha |
+| `care.html` | **Návyky** — súkromné sledovanie toho, čo chceš nechať za sebou alebo si udržať |
 | `profile.html` | Profil s obálkou, odznakmi, počtom návštev a QR pozvánkou |
 | `friends.html` | Ľudia s tagmi kruhov (človek môže byť vo viacerých) |
-| `settings.html` | Účet, predplatné, pokoj, súkromie, motív, odhlásenie |
+| `settings.html` | Účet, predplatné, **odmeny**, pokoj, súkromie, motív, odhlásenie |
 
 Spodná navigácia: **Feed · Správy · Pridať · Priestory · Profil**.
 Kresba dňa je dostupná z horného panela vo feede a z kariet vo feede.
+Návyky sú na vlastnom profile a v nastaveniach.
 
 ## Demo prihlásenie
 
@@ -87,6 +89,38 @@ Za skutočné veci — nie za čas v aplikácii. Napr. *Majster ligy 2024*,
 *Pomocník mesta*, *Susedská záhrada*. Najväčší odznak sa zobrazuje pri mene,
 pri veľkom úspechu aj ako **medový prstenec okolo profilovej fotky**.
 Na profile je záložka **Odznaky** (získané aj nezískané).
+
+### Blízki
+Hviezdičkou v **Priateľoch** označíš blízkych ľudí. Vo feede tým dostaneš filter **Blízki**.
+
+Dôležité: je to **filter, nie algoritmus**. Príspevky sa nikdy nepreraďujú ani
+nezvýhodňujú — len sa zúži, koho vidíš. Poradie ostáva prísne chronologické.
+Pri mene blízkeho človeka sa vo feede zobrazí malá hviezdička.
+
+### Odmeny
+Extra miesto v spoločných priestoroch sa získava za **skutočné príspevky**, nie za čas
+strávený v aplikácii:
+
+| Za čo | Koľko |
+|-------|-------|
+| Každý získaný odznak | +25 MB |
+| Záznam v spoločnom priestore (max 10) | +10 MB |
+| Odoslaná kresba dňa | +15 MB |
+
+Bonus sa počíta zo skutočného stavu a pripočíta sa ku kapacite **každého** priestoru.
+Prehľad je v **Nastaveniach → Odmeny**.
+
+### Návyky
+Súkromný, tichý priestor na to, čo chceš nechať za sebou (*nechávam*) alebo si udržať
+(*budujem*). Nikde sa nezdieľa, nikde sa nepočíta, nikto iný to nevidí.
+
+- **nechávam** — počíta dni od začiatku
+- **budujem** — počíta sériu dní, do ktorých si sa prihlásil
+- pásik ukazuje posledných 14 dní
+- **Začať odznova** tvoj najlepší výsledok *zachová*, nie zmaže — žiadne zahanbovanie
+
+Stránka výslovne hovorí, že Nectar nie je zdravotnícka služba, a odkazuje na blízkych
+alebo odborníka.
 
 ### Pozvánka QR (vlastný profil)
 Na **vlastnom** profile potiahni obrazovku dole (overscroll) — spodok hornej lišty sa rozvinie
@@ -139,4 +173,5 @@ Viditeľný text je v **slovenčine**. Wireframe: `WIREFRAME.md`.
 ## Čo nie je v MVP
 
 Stories, reels, hlasovky, skupinové chaty, algoritmus, reklamy, platený dosah.
+Ani „prioritné" poradie príspevkov — blízki sú filter, nie zvýhodnenie.
 Reálny backend, reálne platby a reálne zdieľanie polohy tiež nie — je to UI prototyp.

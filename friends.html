@@ -25,6 +25,10 @@
       <p class="step-hint center" style="margin:10px 0 0">
         Alebo potiahni dole na vlastnom profile a ukáž jednorazový QR kód.
       </p>
+      <p class="step-hint center" style="margin:8px 0 0">
+        Hviezdičkou označíš <strong>blízkych</strong> — dostaneš na nich vlastný filter vo feede.
+        Poradie príspevkov sa tým nemení.
+      </p>
     </div>
 
     <div class="filters" id="filters">
@@ -80,10 +84,25 @@
               '<div class="friend-status">' + N.escapeHtml(p.status) + '</div>' +
               '<div class="tag-row">' + tags + '</div>' +
             '</div>' +
+            '<button type="button" class="star-btn' + (N.isClose(p.id) ? ' on' : '') + '" ' +
+              'data-close="' + p.id + '" aria-pressed="' + N.isClose(p.id) + '" ' +
+              'title="Blízki" aria-label="Označiť ako blízkeho">' + N.ICONS.star + '</button>' +
             '<a href="conversation.html?user=' + p.id + '" class="btn btn-ghost btn-sm">Napísať</a>' +
           '</div>';
         }).join('') || '<div class="empty-state">' + N.ICONS.users + '<p>V tomto kruhu zatiaľ nikto nie je.</p></div>';
       }
+
+      document.getElementById('friends-list').addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-close]');
+        if (!btn) return;
+        var id = btn.getAttribute('data-close');
+        var added = N.toggleClose(id);
+        var person = N.findPerson(id);
+        N.showToast(added
+          ? N.firstName(person.name) + ' je medzi blízkymi'
+          : N.firstName(person.name) + ' už nie je medzi blízkymi');
+        render();
+      });
 
       document.getElementById('filters').addEventListener('click', function (e) {
         var btn = e.target.closest('.filter-chip');

@@ -88,7 +88,8 @@
           var p = N.findPerson(m);
           return p ? '<img src="' + p.avatar + '" alt="' + N.escapeHtml(p.name) + '" />' : '';
         }).join('');
-        var pct = Math.round((space.storageUsed / space.storageTotal) * 100);
+        var cap = N.spaceCapacity(space);
+        var pct = Math.round((space.storageUsed / cap) * 100);
         var live = space.entries.filter(function (e) { return e.kind === 'loc'; })[0];
 
         head.innerHTML =
@@ -103,11 +104,12 @@
             '<div class="profile-stats">' +
               '<div class="profile-stat"><span class="num">' + space.members.length + '</span><span class="lbl">Ľudí</span></div>' +
               '<div class="profile-stat"><span class="num">' + space.entries.length + '</span><span class="lbl">Záznamov</span></div>' +
-              '<div class="profile-stat"><span class="num">' + (space.storageTotal - space.storageUsed) + '</span><span class="lbl">MB voľných</span></div>' +
+              '<div class="profile-stat"><span class="num">' + (cap - space.storageUsed) + '</span><span class="lbl">MB voľných</span></div>' +
             '</div>' +
             '<div style="max-width:300px;margin:0 auto 16px">' +
               '<span class="storage-bar"><i style="width:' + pct + '%"></i></span>' +
-              '<div class="storage-text">' + space.storageUsed + ' / ' + space.storageTotal + ' MB spoločného úložiska</div>' +
+              '<div class="storage-text">' + space.storageUsed + ' / ' + cap + ' MB spoločného úložiska' +
+                (N.bonusMb() ? ' (+' + N.bonusMb() + ' za odmeny)' : '') + '</div>' +
             '</div>' +
             '<div class="faces" style="justify-content:center;margin-bottom:14px">' + faces + '</div>' +
             '<div class="profile-actions">' +
@@ -201,7 +203,7 @@
           photo: pendingPhoto,
           note: document.getElementById('e-note').value.trim() || null
         });
-        if (pendingPhoto) space.storageUsed = Math.min(space.storageTotal, space.storageUsed + 3);
+        if (pendingPhoto) space.storageUsed = Math.min(N.spaceCapacity(space), space.storageUsed + 3);
         persist();
         modal.classList.remove('open');
         N.showToast('Pridané do priestoru', '✓');

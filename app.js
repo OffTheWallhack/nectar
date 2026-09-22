@@ -19,6 +19,8 @@
     views: 'nectar_profile_views',
     spaces: 'nectar_spaces',
     read: 'nectar_read_threads',
+    close: 'nectar_close',
+    habits: 'nectar_habits',
     me: 'nectar_me_person'
   };
 
@@ -305,6 +307,103 @@
   function getSeenTs() { return read(K.seen, 0) || 0; }
   function setSeenTs(ts) { write(K.seen, ts); }
 
+  /* ---------------- Close circle ----------------
+     "Blízki" is an explicit view you choose, never a reordering of the feed.
+     Prioritising people algorithmically is exactly what Nectar refuses to do. */
+  function getClose() { return read(K.close, null) || ['maria', 'eva']; }
+
+  function isClose(id) { return getClose().indexOf(id) !== -1; }
+
+  function toggleClose(id) {
+    var list = getClose();
+    var i = list.indexOf(id);
+    if (i === -1) list.push(id); else list.splice(i, 1);
+    write(K.close, list);
+    return i === -1;
+  }
+
+  /* ---------------- Rewards ----------------
+     Earned by contributing something real — never by time spent in the app.
+     Every number below is computed from state the person actually created. */
+  function myDrawingCount() {
+    return getDrawings().filter(function (d) { return d.author === 'me'; }).length;
+  }
+
+  function myEntryCount() {
+    return getSpaces().reduce(function (n, sp) {
+      return n + sp.entries.filter(function (e) { return e.who === 'me'; }).length;
+    }, 0);
+  }
+
+  function getRewards() {
+    var badges = (getProfile().badges || []).length;
+    var entries = myEntryCount();
+    var draws = myDrawingCount();
+    return [
+      { id: 'badges', label: 'Odznaky za skutočné veci',
+        note: badges + (badges === 1 ? ' získaný' : ' získané'),
+        mb: badges * 25, done: badges > 0 },
+      { id: 'spaces', label: 'Záznamy v spoločných priestoroch',
+        note: entries + (entries === 1 ? ' záznam' : ' záznamov'),
+        mb: Math.min(entries, 10) * 10, done: entries > 0 },
+      { id: 'draw', label: 'Odoslané kresby dňa',
+        note: draws + (draws === 1 ? ' kresba' : ' kresieb'),
+        mb: draws * 15, done: draws > 0 }
+    ];
+  }
+
+  function bonusMb() {
+    return getRewards().reduce(function (n, r) { return n + r.mb; }, 0);
+  }
+
+  /* Every space gets the same earned bonus on top of its base allowance. */
+  function spaceCapacity(space) { return (space.storageTotal || 250) + bonusMb(); }
+
+  /* ---------------- Habits ----------------
+     Private by default, gentle by design: a restart keeps your best run
+     instead of wiping it, and nothing here is ever shared or counted publicly. */
+  var DEFAULT_HABITS = [
+    { id: 'h1', name: 'Bez cigariet', kind: 'quit', startTs: now - 12 * DAY, best: 12, days: {} },
+    { id: 'h2', name: 'Prechádzka každý deň', kind: 'build', startTs: now - 6 * DAY, best: 4, days: {} }
+  ];
+
+  function dayKey(ts) {
+    var d = new Date(ts);
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  }
+
+  function getHabits() {
+    var saved = read(K.habits, null);
+    if (saved) return saved;
+    /* seed the "build" example with a few recent check-ins so the strip reads */
+    var seeded = JSON.parse(JSON.stringify(DEFAULT_HABITS));
+    [1, 2, 3].forEach(function (back) { seeded[1].days[dayKey(now - back * DAY)] = true; });
+    return seeded;
+  }
+
+  function saveHabits(h) { write(K.habits, h); }
+
+  /* quit: days since the start. build: consecutive days checked in, today optional. */
+  function habitCount(h) {
+    if (h.kind === 'quit') return Math.max(0, Math.floor((Date.now() - h.startTs) / DAY));
+    var n = 0;
+    var cursor = Date.now();
+    if (!h.days[dayKey(cursor)]) cursor -= DAY;
+    while (h.days[dayKey(cursor)]) { n++; cursor -= DAY; }
+    return n;
+  }
+
+  function habitCheckedToday(h) { return !!h.days[dayKey(Date.now())]; }
+
+  function habitStrip(h, len) {
+    var out = [];
+    for (var i = len - 1; i >= 0; i--) {
+      var ts = Date.now() - i * DAY;
+      out.push(h.kind === 'quit' ? ts >= h.startTs : !!h.days[dayKey(ts)]);
+    }
+    return out;
+  }
+
   /* ---------------- People helpers ---------------- */
   function findPerson(id) {
     if (id === 'me') {
@@ -357,10 +456,7 @@
   }
 
   /* ---------------- Time ---------------- */
-  function todayKey() {
-    var d = new Date();
-    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
-  }
+  function todayKey() { return dayKey(Date.now()); }
 
   function clock(ts) {
     var d = new Date(ts);
@@ -464,7 +560,10 @@
     note: '<svg viewBox="0 0 24 24"><path d="M5 3h14a1 1 0 011 1v16a1 1 0 01-1 1H5a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
     calendar: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
     lock: '<svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>',
-    slash: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>'
+    slash: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>',
+    star: '<svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>',
+    leaf: '<svg viewBox="0 0 24 24"><path d="M4 20c0-8 5-14 16-15 0 11-6 16-13 15"/><path d="M4 20c3-4 6-6 10-7.5"/></svg>',
+    gift: '<svg viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M3 13h18M12 9v12"/><path d="M12 9S10.5 4 8 4a2.2 2.2 0 000 5zM12 9s1.5-5 4-5a2.2 2.2 0 010 5z"/></svg>'
   };
 
   /* ---------------- Bottom nav ---------------- */
@@ -579,6 +678,10 @@
     getDrawings: getDrawings, saveDrawings: saveDrawings, getVotes: getVotes, castVote: castVote,
     getSeenTs: getSeenTs, setSeenTs: setSeenTs,
     getTheme: getTheme, setTheme: setTheme,
+    getClose: getClose, isClose: isClose, toggleClose: toggleClose,
+    getRewards: getRewards, bonusMb: bonusMb, spaceCapacity: spaceCapacity,
+    getHabits: getHabits, saveHabits: saveHabits, habitCount: habitCount,
+    habitCheckedToday: habitCheckedToday, habitStrip: habitStrip, dayKey: dayKey,
 
     findPerson: findPerson, firstName: firstName, circleLabel: circleLabel,
     badge: badge, topBadge: topBadge, badgeChip: badgeChip,

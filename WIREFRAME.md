@@ -40,7 +40,8 @@ Kresba dňa má vstup z hornej lišty feedu a z karty výzvy vo feede.
 
 ### 2. feed.html — Chronologický feed
 - Hore: „Nectar“ + kresba dňa + zvonček (→ aktivita)
-- Riadok filtrov: Všetci · Rodina · Priatelia · Práca
+- Riadok filtrov: Všetci · Rodina · Priatelia · Práca · **Blízki**
+- Filter **Blízki** len zúži, koho vidíš — nikdy nepreraďuje (pod filtrom je to napísané)
 - Karta dennej výzvy (→ draw.html) s tvárami a odpočtom do polnoci
 - Zoznam kariet zhora nadol (najnovšie hore): avatar, meno + odznak, čas, fotka,
   text, lajk, počet lajkov, špendlík, jemné „Napísať“ (→ chat s autorom)
@@ -99,6 +100,15 @@ Kresba dňa má vstup z hornej lišty feedu a z karty výzvy vo feede.
 - Vertikálna časová os so zápismi: fotka s popiskom, poznámka, plán, poloha
 - Každé zdieľanie polohy je vedomé a jednorazové
 
+### 9b. care.html — Návyky (súkromné)
+- Odznak „Len pre teba“ + vysvetlenie, že sa nič nezdieľa ani nepočíta
+- Karty návykov: názov, typ (*nechávam* / *budujem*), počet dní, najlepší výsledok,
+  pásik posledných 14 dní
+- *budujem* má „Dnes sa podarilo“ (po klepnutí sa zamkne do ďalšieho dňa)
+- „Začať odznova“ **zachová** najlepší výsledok — žiadne zahanbovanie
+- „+“ v lište pridá nový návyk
+- Pätička: Nectar nie je zdravotnícka služba
+
 ### 10. profile.html — Profil
 - Obálka, profilová fotka (pri veľkom úspechu s medovým prstencom),
   meno + odznak, číselné ID (napr. #10482), status
@@ -111,12 +121,14 @@ Kresba dňa má vstup z hornej lišty feedu a z karty výzvy vo feede.
 ### 11. friends.html — Priatelia / kruhy
 - Počty priamo na filtroch (Rodina · 2, …)
 - Zoznam ľudí so statusom a **viacerými tagmi naraz** (rodina / priatelia / práca)
+- **Hviezdička = blízki.** Dáva vlastný filter vo feede, nie prednostné poradie
 - Tlačidlo Pozvať (kopíruje mock invite link) + odkaz na QR gesto
 - Dostupný z profilu, správ a nastavení
 
 ### 12. settings.html — Nastavenia
 - **Vzhľad**: Denný papier / Večerný papier
 - Účet, Predplatné (1 € / mesiac — aktívne)
+- **Odmeny**: získané MB navyše a za čo presne (odznaky, záznamy, kresby)
 - **Pokoj**: tiché hodiny, značka „Tu si skončil“, skryť počty lajkov
 - Súkromie: priatelia a kruhy, priestory, kto môže písať, poloha na požiadanie
 - Obnoviť ukážkové dáta, Odhlásiť sa
@@ -133,6 +145,7 @@ Kresba dňa má vstup z hornej lišty feedu a z karty výzvy vo feede.
 1. Wireframe vyššie je implementovaný ako klikateľný static web.
 2. Dizajn pôsobí ako pokojný starý Instagram/Twitter, nie moderný doomscroll.
 3. Messenger (messages + conversation) je rovnako prístupný ako feed.
-4. Priestory, kresba dňa a odznaky sú použiteľné, nie len dekorácia.
+4. Priestory, kresba dňa, odznaky, blízki a návyky sú použiteľné, nie len dekorácia.
+   Nič z toho nezavádza algoritmus ani odmeňovanie za čas v aplikácii.
 5. Prechody a mikro-interakcie sú plynulé a tiché; rešpektujú reduced-motion.
 6. README vysvetlí, ako to spustiť lokálne.

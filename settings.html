@@ -71,6 +71,16 @@
         </div>
       </div>
 
+      <div class="settings-label">Odmeny</div>
+      <div class="reward-total">
+        <span class="num" id="rw-total">+0 MB</span>
+        <span class="lbl">navyše v každom spoločnom priestore</span>
+      </div>
+      <div class="settings-section" id="reward-list" style="margin-top:var(--sp-3)"></div>
+      <p class="care-note" style="margin-top:calc(-1 * var(--sp-4))">
+        Odmeny sa získavajú za to, čo naozaj urobíš — nie za čas strávený v aplikácii.
+      </p>
+
       <div class="settings-label">Pokoj</div>
       <div class="settings-section">
         <button type="button" class="settings-row" data-toggle="quiet">
@@ -109,6 +119,13 @@
           <span class="sr-body">
             Spoločné priestory
             <span class="sr-note">Úložisko a členovia</span>
+          </span>
+          <svg class="chev" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+        </a>
+        <a class="settings-row" href="care.html">
+          <span class="sr-body">
+            Návyky
+            <span class="sr-note">Súkromné, nikdy sa nezdieľajú</span>
           </span>
           <svg class="chev" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
         </a>
@@ -152,6 +169,19 @@
       document.getElementById('set-email').textContent = session.email || '—';
       document.getElementById('set-id').textContent = '#' + profile.numericId;
 
+      /* Rewards — recomputed from what you have actually contributed */
+      var rewards = N.getRewards();
+      document.getElementById('rw-total').textContent = '+' + N.bonusMb() + ' MB';
+      document.getElementById('reward-list').innerHTML = rewards.map(function (r) {
+        return '<div class="reward-row' + (r.done ? '' : ' idle') + '">' +
+          '<span class="rw-body">' +
+            '<span class="rw-name">' + N.escapeHtml(r.label) + '</span>' +
+            '<span class="rw-note">' + N.escapeHtml(r.note) + '</span>' +
+          '</span>' +
+          '<span class="rw-mb">+' + r.mb + ' MB</span>' +
+        '</div>';
+      }).join('');
+
       /* Theme */
       function paintTheme() {
         var current = N.getTheme();
@@ -182,7 +212,8 @@
         if (!confirm('Obnoviť ukážkové dáta? Tvoje lokálne príspevky a správy sa vymažú.')) return;
         ['nectar_posts', 'nectar_likes', 'nectar_msgs', 'nectar_profile', 'nectar_pinned',
          'nectar_seen_ts', 'nectar_draw_votes', 'nectar_drawings', 'nectar_profile_views',
-         'nectar_spaces', 'nectar_read_threads', 'nectar_me_person'].forEach(function (k) {
+         'nectar_spaces', 'nectar_read_threads', 'nectar_me_person', 'nectar_close',
+         'nectar_habits'].forEach(function (k) {
           try { localStorage.removeItem(k); } catch (e) {}
         });
         N.showToast('Ukážkové dáta obnovené', '✓');

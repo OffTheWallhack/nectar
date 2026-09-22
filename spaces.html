@@ -94,7 +94,8 @@
           }).join('');
           if (s.members.length > 4) faces += '<span class="more">+' + (s.members.length - 4) + '</span>';
 
-          var pct = Math.round((s.storageUsed / s.storageTotal) * 100);
+          var cap = N.spaceCapacity(s);
+          var pct = Math.round((s.storageUsed / cap) * 100);
 
           return '<a class="space-card" href="space.html?id=' + s.id + '">' +
             '<div class="space-cover" style="background-image:url(' + s.cover + ')">' +
@@ -110,7 +111,7 @@
                 '<span class="faces">' + faces + '</span>' +
                 '<span class="storage-meter">' +
                   '<span class="storage-bar"><i style="width:' + pct + '%"></i></span>' +
-                  '<span class="storage-text">' + s.storageUsed + ' / ' + s.storageTotal + ' MB</span>' +
+                  '<span class="storage-text">' + s.storageUsed + ' / ' + cap + ' MB</span>' +
                 '</span>' +
               '</div>' +
             '</div>' +

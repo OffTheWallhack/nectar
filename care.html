@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f4ebdd" />
+  <title>Návyky — Nectar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="boot.js"></script>
+</head>
+<body>
+  <div class="app-shell has-nav">
+    <header class="topbar">
+      <a href="profile.html" class="back-link" aria-label="Späť na profil">
+        <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+      </a>
+      <span class="topbar-title">Návyky</span>
+      <div class="topbar-actions">
+        <button type="button" class="icon-btn" id="btn-new" title="Nový návyk" aria-label="Nový návyk">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="care-intro">
+      <span class="care-private">
+        <svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+        Len pre teba
+      </span>
+      <p>
+        Tichý priestor na to, čo chceš nechať za sebou, alebo si udržať.
+        Nikto iný to nevidí, nezdieľa sa to a nepočíta sa to nikam.
+        Keď sa deň nepodarí, začneš odznova — tvoj najlepší výsledok ostáva zapísaný.
+      </p>
+    </div>
+
+    <div class="habit-list" id="habit-list"></div>
+
+    <p class="care-note">
+      Nectar nie je zdravotnícka služba. Ak ti je ťažko, ozvi sa niekomu blízkemu
+      alebo odborníkovi — to je väčšia sila než akýkoľvek počet dní.
+    </p>
+
+    <nav class="bottom-nav" id="bottom-nav"></nav>
+  </div>
+
+  <!-- New habit sheet -->
+  <div class="modal-overlay sheet" id="new-modal">
+    <div class="modal">
+      <div class="sheet-grip"></div>
+      <h3>Nový návyk</h3>
+      <div class="form-group">
+        <label for="nh-name">Čo sleduješ?</label>
+        <input class="form-input" id="nh-name" type="text" maxlength="40" placeholder="napr. Bez cigariet" />
+      </div>
+      <div class="form-group">
+        <label for="nh-kind">Typ</label>
+        <select class="form-input" id="nh-kind">
+          <option value="quit">Niečo nechávam za sebou</option>
+          <option value="build">Niečo si budujem</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="nh-cancel">Zrušiť</button>
+        <button type="button" class="btn btn-primary" id="nh-save">Pridať</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      var N = window.Nectar;
+      if (!N.requireAuth()) return;
+      N.renderBottomNav('profile');
+
+      var list = document.getElementById('habit-list');
+
+      function render() {
+        var habits = N.getHabits();
+
+        if (!habits.length) {
+          list.innerHTML = '<div class="empty-state">' + N.ICONS.leaf +
+            '<p>Zatiaľ nič nesleduješ.<br />Pridaj prvý návyk cez „+“ hore.</p></div>';
+          return;
+        }
+
+        list.innerHTML = habits.map(function (h) {
+          var count = N.habitCount(h);
+          var best = Math.max(h.best || 0, count);
+          var strip = N.habitStrip(h, 14);
+          var checked = N.habitCheckedToday(h);
+
+          var action = h.kind === 'build'
+            ? '<button type="button" class="btn ' + (checked ? 'btn-secondary' : 'btn-primary') + ' btn-sm" ' +
+                'data-check="' + h.id + '"' + (checked ? ' disabled' : '') + '>' +
+                (checked ? 'Dnes hotovo ✓' : 'Dnes sa podarilo') + '</button>'
+            : '';
+
+          return '<div class="habit-card">' +
+            '<div class="habit-top">' +
+              '<div class="habit-name">' + N.escapeHtml(h.name) + '</div>' +
+              '<span class="habit-kind">' + (h.kind === 'quit' ? 'nechávam' : 'budujem') + '</span>' +
+            '</div>' +
+            '<div class="habit-count">' +
+              '<span class="num">' + count + '</span>' +
+              '<span class="unit">' + (count === 1 ? 'deň' : (count >= 2 && count <= 4 ? 'dni' : 'dní')) + '</span>' +
+              '<span class="habit-best">najlepšie: ' + best + '</span>' +
+            '</div>' +
+            '<div class="habit-strip" aria-hidden="true">' +
+              strip.map(function (on) { return '<i class="' + (on ? 'on' : '') + '"></i>'; }).join('') +
+            '</div>' +
+            '<div class="habit-actions">' +
+              action +
+              '<button type="button" class="btn btn-secondary btn-sm" data-reset="' + h.id + '">Začať odznova</button>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      }
+
+      function update(id, fn) {
+        var habits = N.getHabits();
+        for (var i = 0; i < habits.length; i++) {
+          if (habits[i].id === id) { fn(habits[i]); break; }
+        }
+        N.saveHabits(habits);
+        render();
+      }
+
+      list.addEventListener('click', function (e) {
+        var check = e.target.closest('[data-check]');
+        if (check) {
+          update(check.getAttribute('data-check'), function (h) {
+            h.days[N.dayKey(Date.now())] = true;
+          });
+          N.showToast('Zapísané. Pekný deň.', '🌿');
+          return;
+        }
+
+        var reset = e.target.closest('[data-reset]');
+        if (reset) {
+          /* A restart banks the best run rather than erasing it. */
+          update(reset.getAttribute('data-reset'), function (h) {
+            h.best = Math.max(h.best || 0, N.habitCount(h));
+            h.startTs = Date.now();
+            h.days = {};
+          });
+          N.showToast('Začíname odznova. Tvoj rekord ostáva.');
+        }
+      });
+
+      var modal = document.getElementById('new-modal');
+      document.getElementById('btn-new').onclick = function () {
+        document.getElementById('nh-name').value = '';
+        modal.classList.add('open');
+        document.getElementById('nh-name').focus();
+      };
+      document.getElementById('nh-cancel').onclick = function () { modal.classList.remove('open'); };
+      modal.addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+
+      document.getElementById('nh-save').onclick = function () {
+        var name = document.getElementById('nh-name').value.trim();
+        if (!name) { N.showToast('Daj tomu meno'); return; }
+        var habits = N.getHabits();
+        habits.unshift({
+          id: 'h-' + Date.now(),
+          name: name,
+          kind: document.getElementById('nh-kind').value,
+          startTs: Date.now(),
+          best: 0,
+          days: {}
+        });
+        N.saveHabits(habits);
+        modal.classList.remove('open');
+        N.showToast('Pridané — len pre teba', '🌿');
+        render();
+      };
+
+      render();
+    })();
+  </script>
+</body>
+</html>
