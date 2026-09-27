@@ -16,5 +16,5 @@
 
   document.documentElement.setAttribute('data-theme', t);
   var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', t === 'dusk' ? '#221c16' : '#f4ebdd');
+  if (meta) meta.setAttribute('content', t === 'dusk' ? '#000000' : '#ffffff');
 })();

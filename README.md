@@ -70,7 +70,7 @@ do `localStorage` prehliadača. V **Nastaveniach → Obnoviť ukážkové dáta*
 - **Dvojklik / dvojité klepnutie na fotku** = lajk so srdiečkom.
 - **„Tu si skončil“** — jemná čiara tam, kde si minule prestal čítať.
 - **Koniec feedu** je skutočný koniec: žiadny nekonečný scroll.
-- Fotky majú polaroid rámik a voliteľnú **ručne písanú poznámku**.
+- Fotky sú na celú šírku (alebo s tenkým 1px okrajom) a voliteľnou krátkou poznámkou.
 
 ### Spoločné priestory
 Súkromné zdieľané časové osi pre výlety, projekty a iniciatívy:
@@ -85,7 +85,7 @@ Víťaz dostáva odznak **Kresba dňa**.
 ### Odznaky
 Za skutočné veci — nie za čas v aplikácii. Napr. *Majster ligy 2024*,
 *Pomocník mesta*, *Susedská záhrada*. Najväčší odznak sa zobrazuje pri mene,
-pri veľkom úspechu aj ako **medový prstenec okolo profilovej fotky**.
+pri veľkom úspechu aj ako **tenký čierny prstenec okolo profilovej fotky**.
 Na profile je záložka **Odznaky** (získané aj nezískané).
 
 ### Pozvánka QR (vlastný profil)
@@ -98,31 +98,35 @@ Na cudzích profiloch sa gesto nezobrazuje.
 
 ## Dizajn
 
-**Warm paper** — krémový papier, mäkký atrament, med / amber len na tlačidlách,
-aktívnej navigácii, QR a odkazoch.
+**Clean cool minimal (~2012 Instagram)** — čistá biela plocha, ostrý čierny text,
+tenké sivé linky. Žiadny krém, žiadny papier, žiadny amber, žiadna textúra.
 
-- Pozadie: teplý papier (`#f4ebdd`), nie čistá biela
-- Text: teplá takmer-čierna (`#2b2419`)
-- Akcent: nectar gold (`#c48932`) — šetrne
-- Fotky: polaroid-lite okraj a jemný tieň
-- Karty (feed, priestory, QR pozvánka) ako papier na stole
-- Typografia: *Fraunces* (značka, nadpisy) + Source Sans 3 (UI) cez Google Fonts CDN
+- Pozadie: `#ffffff` a veľmi svetlá sivá `#fafafa`
+- Text: `#111111` / `#262626`
+- Linky: `#dbdbdb`
+- Primárne akcie: čierne tlačidlá. Instagram modrá `#3897f0` len na odkazoch
+- Fotky: na celú šírku alebo s 1px okrajom — bez polaroid rámikov
+- QR pozvánka: ostrá biela karta, čierny kód, minimum chrómu
+- Bubliny správ: biela / svetlosivá a čierny text
+- Spodná navigácia: ikona + popis, aktívny stav čierny
+- Typografia: systémový sans-serif (Helvetica / systém). Žiadny ozdobný serif
+- `color-scheme: light`, `theme-color` biela (večerný motív: čierna)
 
 ### Dva motívy
-- **Denný papier** — predvolený krémový.
-- **Večerný papier** — teplá, pri sviečke vyzerajúca tmavá varianta. Žiadna OLED čierna,
-  žiadne studené modré tóny.
+- **Denný papier** — predvolený, biely a ostrý. Názov v nastaveniach ostáva.
+- **Večerný papier** — studená takmer čierna varianta s rovnakými pravidlami.
+  Žiadny teplý papier, žiadny med.
 
 Motív sa prepína v **Nastaveniach → Vzhľad**, ukladá sa do `localStorage` a aplikuje sa
 ešte pred vykreslením (`boot.js`), takže pri prechode medzi stránkami neprebliskne.
 Pri prvom spustení sa riadi systémovým nastavením.
 
 ### Pohyb
-Prechody medzi stránkami sú tlmené (fade), karty a zoznamy nabiehajú zhora,
+Prechody medzi stránkami sú tlmené (fade), zoznamy nabiehajú zhora,
 obrázky sa prelínajú až po načítaní, lajk a hlas majú pružnú odozvu.
-Všetko rešpektuje `prefers-reduced-motion: reduce`.
+QR panel sa stále rozvinie potiahnutím. Všetko rešpektuje `prefers-reduced-motion: reduce`.
 
-Nálada: pokojný starý Instagram / Twitter, nie neon, nie glassmorphism, nie fialové AI.
+Nálada: ostrý starý Instagram, nie krémový scrapbook, nie neon, nie glassmorphism.
 
 Viditeľný text je v **slovenčine**. Wireframe: `WIREFRAME.md`.
 

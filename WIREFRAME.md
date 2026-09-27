@@ -8,19 +8,19 @@ Okolo toho: spoločné priestory, denná kresba a odznaky za skutočné veci.
 Predplatné ~1 € / mesiac. Žiadne stories, reels, hlasovky, skupinové chaty, boost, algoritmus.
 
 ## Dizajn
-**Warm paper:** krémový papier, mäkký atrament, honey/amber akcent šetrne.
-Inšpirácia: starý Instagram + starý Twitter (cca 2005–2015), nie neon / glass.
-Dva motívy: **Denný papier** (predvolený) a **Večerný papier** (teplá tmavá varianta,
-nie OLED čierna). Motív sa aplikuje pred vykreslením, aby neprebliskol.
+**Clean cool minimal (~2012 Instagram):** biela plocha, čierny text, 1px sivé linky.
+Primárne tlačidlá sú čierne. Instagram modrá len na odkazoch. Žiadny krém, amber ani papier.
+Dva motívy: **Denný papier** (predvolený, biely) a **Večerný papier** (studená takmer čierna).
+Motív sa aplikuje pred vykreslením, aby neprebliskol.
 Mobil-first web (max-width ~440px centered na desktope), funguje aj v prehliadači.
 UI copy: slovenčina.
 
 ## Dizajnový systém
-- **Tokeny** v `:root` (papier, atrament, linky, med, tiene, rádiusy, rytmus 4px, motion).
-- **Elevácia** je vždy teplá a nízka — nikdy čistá čierna.
+- **Tokeny** v `:root` (biela, čierna, `#dbdbdb`, čierne akcie, modré odkazy, rytmus 4px, motion).
+- **Elevácia** je takmer plochá. Tiene len na modáloch.
 - **Pohyb**: fade prechody medzi stránkami, nabiehanie zoznamov, pružné mikro-interakcie
   na lajk / hlas / navigáciu. Všetko pod `prefers-reduced-motion`.
-- **Fotky**: polaroid-lite rámik, prelínanie po načítaní, voliteľná ručne písaná poznámka.
+- **Fotky**: full-bleed alebo 1px okraj, prelínanie po načítaní, voliteľná rovná poznámka.
 
 ## Spodná navigácia (5 položiek, na app obrazovkách)
 Feed · Správy · Pridať (+) · Priestory · Profil

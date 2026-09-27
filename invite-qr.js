@@ -130,11 +130,11 @@
       canvas.style.height = css + 'px';
       var ctx = canvas.getContext('2d');
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.fillStyle = '#fffaf2';
+      ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, css, css);
       var pad = 10;
       var cell = (css - pad * 2) / n;
-      ctx.fillStyle = '#2a241c';
+      ctx.fillStyle = '#111111';
       for (var r = 0; r < n; r++) {
         for (var c = 0; c < n; c++) {
           if (qr.isDark(r, c)) {
@@ -146,13 +146,13 @@
       var holeH = 20;
       var hx = (css - holeW) / 2;
       var hy = (css - holeH) / 2;
-      ctx.fillStyle = '#fffaf2';
+      ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(hx, hy, holeW, holeH, 3);
+      if (ctx.roundRect) ctx.roundRect(hx, hy, holeW, holeH, 2);
       else ctx.rect(hx, hy, holeW, holeH);
       ctx.fill();
-      ctx.fillStyle = '#2a241c';
-      ctx.font = 'italic 12px Fraunces, Georgia, "Times New Roman", Times, serif';
+      ctx.fillStyle = '#111111';
+      ctx.font = '700 11px -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('Nectar', css / 2, css / 2 + 0.5);
