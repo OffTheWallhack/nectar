@@ -4,7 +4,7 @@ Pokojná platená sociálna sieť bez reklám a bez algoritmu.
 Primárne **1:1 messenger**, sekundárne chronologický feed s kruhmi (Rodina / Priatelia / Práca),
 plus **spoločné priestory**, **kresba dňa** a **odznaky** za skutočné veci.
 
-Toto je **statický klikateľný prototyp** (HTML + CSS + JS). Žiadny backend, žiadne reálne platby.
+Toto je **statický klikateľný prototyp** (HTML + CSS + JS). Žiadny backend pre samotnú appku, žiadne reálne platby. Jediné volanie von je malý odznak „online“ (`stats.js`, anonymné počítadlo návštevníkov).
 
 ## Živá verzia (GitHub Pages)
 

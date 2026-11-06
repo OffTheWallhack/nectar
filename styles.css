@@ -2100,3 +2100,6 @@ body.own-profile { height: 100%; overflow: hidden; }
 @media (min-width: 441px) {
   .app-shell { border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
 }
+
+/* Online odznak (stats.js): nad spodným menu, nech ho neprekrýva */
+html #rd-stats { bottom: calc(var(--nav-h, 0px) + var(--safe-b, 0px) + 10px); }
